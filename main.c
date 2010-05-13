@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include "main.h"
-
+box currentbox;
 #define BUFFSIZE 32
 void Die(char *mess) { perror(mess); exit(1); }
 
@@ -25,7 +25,10 @@ int main(int argc, char *argv[]) {
   char buffer[BUFFSIZE];
   unsigned int echolen;
   int received = 0;
-
+  currentbox->left = UNKNOWN;
+  currentbox->up   = UNKNOWN;
+  currentbox->right= UNKNOWN;
+  currentbox->down = UNKNOWN;
   if (argc != 4) {
     fprintf(stderr, "USAGE: TCPecho <server_ip> <word> <port>\n");
     exit(1);
@@ -62,7 +65,14 @@ int main(int argc, char *argv[]) {
 
 void WhatweGonnaDo(const char * buff){
   fprintf(stdout, buff);
+  box *currentbox;
+
+  nouvelle_case(buff);
 //TODO : what we do whith this fucking buffer!
 
 }
+//si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
+//en gros sur reponse de la commande voir
+box *nouvelle_case(const char * buff){
 
+}

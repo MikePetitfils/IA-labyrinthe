@@ -27,5 +27,11 @@
 # define   	MAIN_H_
 void WhatweGonnaDo(const char * );
 
+struct case {
+  case *left;
+  case *right;
+  case *up;
+  case *down;
+};
 
 #endif 	    /* !MAIN_H_ */
