@@ -30,13 +30,14 @@ void WhatweGonnaDo(const char * );
 
 #define MUR      NULL
 typedef struct
-   {
+{
   struct box * left;
   struct box * right;
   struct box * up;
   struct box * down;
+  char state;
 
-   } box;
+} box;
 
 void update_current(const char * );
 void nouvelle_cases(const char * );

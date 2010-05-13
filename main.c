@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include "main.h"
-struct box * currentbox;
+struct box *currentbox;
 #define BUFFSIZE 32
 void Die(char *mess) { perror(mess); exit(1); }
 
@@ -81,19 +81,19 @@ void nouvelle_cases(const char * buff){
     currentbox->left = malloc(sizeof(box));
 
   if ( buff[2] == 'm' )
-    currentbox->right = NULL;
+    currentbox->right = (box *)NULL;
   else
-    currentbox->right = malloc(sizeof(box));
+    currentbox->right = (box *)malloc(sizeof(box));
 
   if ( buff[3] == 'm' )
-    currentbox->up = NULL;
+    currentbox->up = (box *)NULL;
   else
-    currentbox->up = malloc(sizeof(box));
+    currentbox->up = (box *)malloc(sizeof(box));
 
   if ( buff[4] == 'm' )
-    currentbox->down = NULL;
+    currentbox->down = (box *)NULL;
   else
-    currentbox->down = malloc(sizeof(box));
+    currentbox->down = (box *)malloc(sizeof(box));
 }
 
 void update_current(const char * buff){
