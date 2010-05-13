@@ -25,9 +25,9 @@ int main(int argc, char *argv[]) {
   char buffer[BUFFSIZE];
   unsigned int echolen;
   int received = 0;
-  currentbox = malloc(sizeof(box));
-  if (argc != 4) {
-    fprintf(stderr, "USAGE: TCPecho <server_ip> <word> <port>\n");
+  currentbox = (box*)malloc(sizeof(struct box));
+  if (argc != 3) {
+    fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
     exit(1);
   }
   /* Create the TCP socket */
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   memset(&echoserver, 0, sizeof(echoserver));       /* Clear struct */
   echoserver.sin_family = AF_INET;                  /* Internet/IP */
   echoserver.sin_addr.s_addr = inet_addr(argv[1]);  /* IP address */
-  echoserver.sin_port = htons(atoi(argv[3]));       /* server port */
+  echoserver.sin_port = htons(atoi(argv[2]));       /* server port */
   /* Establish connection */
   if (connect(sock,
               (struct sockaddr *) &echoserver,
@@ -81,17 +81,17 @@ void nouvelle_cases(const char * buff){
     currentbox->left = malloc(sizeof(box));
 
   if ( buff[2] == 'm' )
-    currentbox->right = (box *)NULL;
+    currentbox->right = NULL;
   else
     currentbox->right = (box *)malloc(sizeof(box));
 
   if ( buff[3] == 'm' )
-    currentbox->up = (box *)NULL;
+    currentbox->up = NULL;
   else
     currentbox->up = (box *)malloc(sizeof(box));
 
   if ( buff[4] == 'm' )
-    currentbox->down = (box *)NULL;
+    currentbox->down = NULL;
   else
     currentbox->down = (box *)malloc(sizeof(box));
 }

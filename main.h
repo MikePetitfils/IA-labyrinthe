@@ -29,7 +29,7 @@ void WhatweGonnaDo(const char * );
 
 
 #define MUR      NULL
-typedef struct
+typedef struct box
 {
   struct box * left;
   struct box * right;
@@ -37,7 +37,7 @@ typedef struct
   struct box * down;
   char state;
 
-} box;
+}box;
 
 void update_current(const char * );
 void nouvelle_cases(const char * );
