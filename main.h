@@ -28,7 +28,6 @@
 void WhatweGonnaDo(const char * );
 
 
-#define UNKNOWN 255
 #define MUR      NULL
 typedef struct
    {
@@ -39,6 +38,6 @@ typedef struct
 
    } box;
 
-
+void update_current(const char * );
 void nouvelle_cases(const char * );
 #endif 	    /* !MAIN_H_ */

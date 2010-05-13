@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include "main.h"
-box *currentbox;
+struct box * currentbox;
 #define BUFFSIZE 32
 void Die(char *mess) { perror(mess); exit(1); }
 
@@ -62,11 +62,12 @@ int main(int argc, char *argv[]) {
 
 void WhatweGonnaDo(const char * buff){
   fprintf(stdout, buff);
-  //voir
+  // si c'est une réponse a voir
   if (buff[0] == 'v')
     nouvelle_cases(buff);
-
-
+  // si c'est une réponse a avancer on repositionne le current_box
+  if (buff[0] == 'a')
+    update_current(buff);
 //TODO : what we do whith this fucking buffer!
 
 }
@@ -93,10 +94,24 @@ void nouvelle_cases(const char * buff){
     currentbox->down = NULL;
   else
     currentbox->down = malloc(sizeof(box));
-
-
 }
 
+void update_current(const char * buff){
+  switch ( buff[1] ) {
+  case 'u':
+    currentbox = currentbox->up;
+    break;
+  case 'd':
+    currentbox = currentbox->down;
+    break;
+  case 'l':
+    currentbox = currentbox->left;
+    break;
+  case 'r':
+    currentbox = currentbox->right;
+    break;
 
+  }
+}
 
 
