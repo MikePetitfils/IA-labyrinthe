@@ -25,10 +25,10 @@
 
 #ifndef   	MAIN_H_
 # define   	MAIN_H_
-void WhatweGonnaDo(const char * );
+void WhatweGonnaDo(char * );
 
 
-#define MUR      NULL
+#define MUR      255
 typedef struct box
 {
   struct box * left;
@@ -41,4 +41,5 @@ typedef struct box
 
 void update_current(const char * );
 void nouvelle_cases(const char * );
+void avancer(char * );
 #endif 	    /* !MAIN_H_ */

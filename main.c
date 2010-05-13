@@ -18,7 +18,7 @@
 struct box *currentbox;
 #define BUFFSIZE 32
 void Die(char *mess) { perror(mess); exit(1); }
-
+void DEBUG(char *mess) { printf("%s \n\r", mess); }
 int main(int argc, char *argv[]) {
   int sock;
   struct sockaddr_in echoserver;
@@ -55,45 +55,84 @@ int main(int argc, char *argv[]) {
       }
       received += bytes;
       buffer[bytes] = '\0';        /* Assure null terminated string */
+      printf("what we gonna do : \n\r %c", buffer[0]);
       WhatweGonnaDo(buffer);
+      avancer(buffer);
+      write(sock,buffer,strlen(buffer));
     }
   }
 }
 
-void WhatweGonnaDo(const char * buff){
+void WhatweGonnaDo(char * buff){
   fprintf(stdout, buff);
   // si c'est une réponse a voir
-  if (buff[0] == 'v')
+  if (buff[0] == 'v'){
+    DEBUG("new box");
     nouvelle_cases(buff);
+  }
   // si c'est une réponse a avancer on repositionne le current_box
-  if (buff[0] == 'a')
+  else if (buff[0] == 'a'){
+    DEBUG("update current");
     update_current(buff);
-//TODO : what we do whith this fucking buffer!
 
+  }
+//TODO : what we do whith this fucking buffer!
+  memset(buff,0,BUFFSIZE);
 }
 //si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
 //en gros sur reponse de la commande voir
 void nouvelle_cases(const char * buff){
-
-  if ( buff[1] == 'm' )
-    currentbox->left = NULL;
+  DEBUG("nouvelle case");
+  if ( buff[1] == 'm' ){
+    if (currentbox->left == NULL ){
+      currentbox->left = (box *)malloc(sizeof(box));
+      currentbox->left->state=MUR;
+      DEBUG("left : mur");
+    }
+  }
   else
-    currentbox->left = malloc(sizeof(box));
-
-  if ( buff[2] == 'm' )
-    currentbox->right = NULL;
+    if ( currentbox->left == NULL ){
+      DEBUG("left : box");
+      currentbox->left = (box *)malloc(sizeof(box));
+    }
+  if ( buff[2] == 'm' ){
+    if ( currentbox->right == NULL ){
+      DEBUG("right : mur");
+      currentbox->right = (box *)malloc(sizeof(box));
+      currentbox->right->state=MUR;
+    }
+  }
   else
-    currentbox->right = (box *)malloc(sizeof(box));
-
-  if ( buff[3] == 'm' )
-    currentbox->up = NULL;
+    if ( currentbox->right == NULL ){
+      currentbox->right = (box *)malloc(sizeof(box));
+      DEBUG("right : box");
+    }
+  if ( buff[3] == 'm' ){
+    if ( currentbox->up == NULL ){
+      DEBUG("up : mur");
+      currentbox->up = (box *)malloc(sizeof(box));
+      currentbox->up->state=MUR;
+    }
+  }
   else
-    currentbox->up = (box *)malloc(sizeof(box));
-
+    if ( currentbox->up == NULL ){
+      currentbox->up = (box *)malloc(sizeof(box));
+      DEBUG("lup : box");
+    }
   if ( buff[4] == 'm' )
-    currentbox->down = NULL;
-  else
-    currentbox->down = (box *)malloc(sizeof(box));
+    if ( currentbox->down == NULL ){
+      DEBUG("down : mur");
+      currentbox->down = (box *)malloc(sizeof(box));
+      currentbox->down->state=MUR;
+    }
+    else
+      if ( currentbox->down == NULL )
+      {
+        currentbox->down = (box *)malloc(sizeof(box));
+        DEBUG("down : box");
+      }
+
+
 }
 
 void update_current(const char * buff){
@@ -111,6 +150,33 @@ void update_current(const char * buff){
     currentbox = currentbox->right;
     break;
 
+  }
+}
+
+void avancer(char * buff){
+  if ( currentbox->up != NULL ){
+    if ( currentbox->up->state != MUR){
+      buff = "avancer : up";
+      DEBUG ("avancer :up ");
+    }
+  }
+  else if ( currentbox->down != NULL ){
+    if ( currentbox->down->state != MUR){
+      buff = "avancer : down";
+      DEBUG ("avancer :down ");
+    }
+  }
+  else if ( currentbox->right != NULL ){
+    if ( currentbox->right->state != MUR){
+      buff = "avancer : right";
+      DEBUG ("avancer : right ");
+    }
+  }
+  else if ( currentbox->left != NULL ){
+    if ( currentbox->left->state != MUR){
+      DEBUG ("avancer : left ");
+      buff = "avancer : left";
+    }
   }
 }
 
