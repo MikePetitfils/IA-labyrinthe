@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include "main.h"
-box currentbox;
+box *currentbox;
 #define BUFFSIZE 32
 void Die(char *mess) { perror(mess); exit(1); }
 
@@ -25,10 +25,7 @@ int main(int argc, char *argv[]) {
   char buffer[BUFFSIZE];
   unsigned int echolen;
   int received = 0;
-  currentbox->left = UNKNOWN;
-  currentbox->up   = UNKNOWN;
-  currentbox->right= UNKNOWN;
-  currentbox->down = UNKNOWN;
+  currentbox = malloc(sizeof(box));
   if (argc != 4) {
     fprintf(stderr, "USAGE: TCPecho <server_ip> <word> <port>\n");
     exit(1);
@@ -65,14 +62,41 @@ int main(int argc, char *argv[]) {
 
 void WhatweGonnaDo(const char * buff){
   fprintf(stdout, buff);
-  box *currentbox;
+  //voir
+  if (buff[0] == 'v')
+    nouvelle_cases(buff);
 
-  nouvelle_case(buff);
+
 //TODO : what we do whith this fucking buffer!
 
 }
 //si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
 //en gros sur reponse de la commande voir
-box *nouvelle_case(const char * buff){
+void nouvelle_cases(const char * buff){
+
+  if ( buff[1] == 'm' )
+    currentbox->left = NULL;
+  else
+    currentbox->left = malloc(sizeof(box));
+
+  if ( buff[2] == 'm' )
+    currentbox->right = NULL;
+  else
+    currentbox->right = malloc(sizeof(box));
+
+  if ( buff[3] == 'm' )
+    currentbox->up = NULL;
+  else
+    currentbox->up = malloc(sizeof(box));
+
+  if ( buff[4] == 'm' )
+    currentbox->down = NULL;
+  else
+    currentbox->down = malloc(sizeof(box));
+
 
 }
+
+
+
+

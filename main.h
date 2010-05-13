@@ -27,11 +27,18 @@
 # define   	MAIN_H_
 void WhatweGonnaDo(const char * );
 
-struct case {
-  case *left;
-  case *right;
-  case *up;
-  case *down;
-};
 
+#define UNKNOWN 255
+#define MUR      NULL
+typedef struct
+   {
+  struct box * left;
+  struct box * right;
+  struct box * up;
+  struct box * down;
+
+   } box;
+
+
+void nouvelle_cases(const char * );
 #endif 	    /* !MAIN_H_ */
