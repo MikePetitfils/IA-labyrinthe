@@ -46,5 +46,5 @@ void culdesacbuster(struct box *);
 void update_current(void);
 void nouvelle_cases(struct box **);
 struct box * newbox(void);
-void avancer(void);
+void avancer(struct box **);
 #endif 	    /* !MAIN_H_ */

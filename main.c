@@ -1,8 +1,6 @@
 /*
 ** main.c
-** Login : <najon@najon-desktop>
 ** Started on  Thu May 13 13:29:26 2010 najon
-** $Id$
 **
 ** Author(s):
 **  - jmassot <massot.julien@gmail.com>
@@ -63,12 +61,15 @@ int main(int argc, char *argv[]) {
       printf("what we gonna do : \n\r %c", buffer[0]);
       WhatweGonnaDo();
       printf ("avancer\n\r");
-      avancer();
+      avancer(&currentbox);
       send(sock,buffer,strlen(buffer),0);
     }
   }
 }
-
+/*
+ * on n'a pas encore le protocole alors je simule la premiere lettre du msg
+ *v pour voir a pour
+ */
 void WhatweGonnaDo(){
   fprintf(stdout, buffer);
   // si c'est une réponse a voir
@@ -87,10 +88,14 @@ void WhatweGonnaDo(){
 //TODO : what we do whith this fucking buffer!
   memset(buffer,0,BUFFSIZE);
 }
-//si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
-//en gros sur reponse de la commande voir
-void nouvelle_cases(struct box ** pbox){
+/*si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
+ *en gros sur reponse de la commande voir
+ *on manipule l'objet courent je prend des pounteurs de pointeurs pour
+ *faire disparaitre au fur et a mesure la putain de variable globale avec
+ *l'arbre
+*/
 
+void nouvelle_cases(struct box ** pbox){
 
   if ( buffer[1] == 'm' ){
     if ((*pbox)->left == NULL ){
@@ -156,14 +161,17 @@ void nouvelle_cases(struct box ** pbox){
 
 
 }
-
-void update_current(){
+/*
+ * Sur demande change la current box
+ *
+ */
+void update_current(struct box ** pbox){
   switch ( buffer[1] ) {
   case 'u':
-    currentbox = currentbox->up;
+    (*pbox) = (*pbox)->up;
     break;
   case 'd':
-    currentbox = currentbox->down;
+    (*pbox) = (*pbox)->down;
     break;
   case 'l':
     currentbox = currentbox->left;
@@ -174,24 +182,27 @@ void update_current(){
 
   }
 }
-
-void avancer(void){
+/*
+ * Cette fonctions sert a laissé le chois a l'IA pour avancer
+ * prend la première issue qui n'est pas un mur
+ */
+void avancer(struct box ** pbox){
   DEBUG("avancer dedans");
-  if ( currentbox->up != NULL ){
+  if ( (*pbox)->up != NULL ){
     DEBUG("up not null");
-    if ( currentbox->up->state != MUR){
+    if ( (*pbox)->up->state != MUR){
       strcpy(buffer, "avancer : up\n\r");
-      currentbox=currentbox->up;
+      (*pbox)=(*pbox)->up;
       DEBUG ("avancer :up ");
       return;
     }
   }
   else
     DEBUG("up null ");
-  if ( currentbox->down != NULL ){
-    if ( currentbox->down->state != MUR){
+  if ( (*pbox)->down != NULL ){
+    if ( (*pbox)->down->state != MUR){
       strcpy(buffer,"avancer : down\n\r");
-      currentbox=currentbox->down;
+      (*pbox)=(*pbox)->down;
       DEBUG ("avancer :down ");
       return;
     }
@@ -199,10 +210,10 @@ void avancer(void){
   else
     DEBUG("down null ");
 
-  if ( currentbox->right != NULL ){
-    if ( currentbox->right->state != MUR){
+  if ( (*pbox)->right != NULL ){
+    if ( (*pbox)->right->state != MUR){
       strcpy(buffer,"avancer : right\n\r");
-      currentbox=currentbox->right;
+      (*pbox)=(*pbox)->right;
       DEBUG ("avancer : right\n\r");
       return;
     }
@@ -210,10 +221,10 @@ void avancer(void){
   else
     DEBUG("right  null ");
 
-  if ( currentbox->left != NULL ){
-    if ( currentbox->left->state != MUR){
+  if ( (*pbox)->left != NULL ){
+    if ( (*pbox)->left->state != MUR){
       DEBUG ("avancer : left\n\r");
-      currentbox=currentbox->left;
+      (*pbox)=(*pbox)->left;
       strcpy(buffer,"avancer : left\n\r");
       return;
     }
@@ -260,6 +271,7 @@ void culdesacbuster(struct box * pbox){
   if ( pbox->down == NULL || pbox->left->state != MUR )
     issue++;
 //there are only one issue
+// commenté pour testé mais surement a cause ce ca que ca segfault
 //  if ( issue < 2 && pbox != currentbox){
   if ( issue < 2){
     pbox->state=MUR;
