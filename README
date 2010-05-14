@@ -1,0 +1,9 @@
+How to test
+
+simulate the serveur with netcat
+ex : nc -l 3333
+
+launch the client
+
+write the command to the client RTFS
+
