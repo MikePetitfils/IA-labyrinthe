@@ -43,8 +43,9 @@ typedef struct box
 
 }box;
 void culdesacbuster(struct box *);
-void update_current(void);
 void nouvelle_cases(struct box **);
+void update_current(struct box **);
 struct box * newbox(void);
 void avancer(struct box **);
+void printbox(struct box *);
 #endif 	    /* !MAIN_H_ */

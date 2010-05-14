@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include "main.h"
 struct box *currentbox;
+struct box *curseurbox;
 int last;
 #define BUFFSIZE 32
 char buffer[BUFFSIZE];
@@ -27,6 +28,7 @@ int main(int argc, char *argv[]) {
   unsigned int echolen;
   int received = 0;
   currentbox = newbox();
+  curseurbox = currentbox;
   last=0;
   if (argc != 3) {
     fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
@@ -60,8 +62,6 @@ int main(int argc, char *argv[]) {
       buffer[bytes] = '\0';        /* Assure null terminated string */
       printf("what we gonna do : \n\r %c", buffer[0]);
       WhatweGonnaDo();
-      printf ("avancer\n\r");
-      avancer(&currentbox);
       send(sock,buffer,strlen(buffer),0);
     }
   }
@@ -74,17 +74,25 @@ void WhatweGonnaDo(){
   fprintf(stdout, buffer);
   // si c'est une réponse a voir
   if (buffer[0] == 'v'){
-
-    nouvelle_cases(&currentbox);
+    if (buffer[1] == 'c')
+      nouvelle_cases(&curseurbox);
+    else
+      nouvelle_cases(&currentbox);
   }
   // si c'est une réponse a avancer on repositionne le current_box
-  else if (buffer[0] == 'a'){
+  else if (buffer[0] == 'u'){
     DEBUG("update current");
-    update_current();
+    update_current(&curseurbox);
   }
-  else if (buffer[0] == 'c'){
-    culdesacbuster(currentbox);
-  }
+  else if (buffer[0] == 'c')
+    culdesacbuster(curseurbox);
+  else if (buffer[0] == 'p')
+    if (buffer[1] == 'c')
+      printbox(curseurbox);
+    else
+      printbox(currentbox);
+  else if (buffer[0] == 'a')
+    avancer(&currentbox);
 //TODO : what we do whith this fucking buffer!
   memset(buffer,0,BUFFSIZE);
 }
@@ -97,7 +105,7 @@ void WhatweGonnaDo(){
 
 void nouvelle_cases(struct box ** pbox){
 
-  if ( buffer[1] == 'm' ){
+  if ( buffer[2] == 'm' ){
     if ((*pbox)->left == NULL ){
       (*pbox)->left=newbox();
       (*pbox)->left->state=MUR;
@@ -113,7 +121,7 @@ void nouvelle_cases(struct box ** pbox){
     }
   }
 
-  if ( buffer[2] == 'm' ){
+  if ( buffer[3] == 'm' ){
     if ( (*pbox)->right == NULL ){
       DEBUG("right : mur");
       (*pbox)->right=newbox();
@@ -128,7 +136,7 @@ void nouvelle_cases(struct box ** pbox){
     }
   }
 
-  if ( buffer[3] == 'm' ){
+  if ( buffer[4] == 'm' ){
     if ( (*pbox)->up == NULL ){
       DEBUG("up : mur");
       (*pbox)->up = newbox();
@@ -143,13 +151,13 @@ void nouvelle_cases(struct box ** pbox){
     }
   }
 
-  if ( buffer[4] == 'm' )
+  if ( buffer[5] == 'm' ){
     if ( (*pbox)->down == NULL ){
       DEBUG("down : mur");
       (*pbox)->down = newbox();
       (*pbox)->down->state=MUR;
     }
-    else
+  }else
     {
       if ( (*pbox)->down == NULL )
       {
@@ -174,10 +182,12 @@ void update_current(struct box ** pbox){
     (*pbox) = (*pbox)->down;
     break;
   case 'l':
-    currentbox = currentbox->left;
+    (*pbox) = (*pbox)->left;
     break;
   case 'r':
-    currentbox = currentbox->right;
+    (*pbox) = (*pbox)->right;
+    break;
+  default:
     break;
 
   }
@@ -234,7 +244,41 @@ void avancer(struct box ** pbox){
 
 
 }
+void printbox(struct box * pbox){
+  if (pbox == NULL){
+    DEBUG("ERREUR : la case courante est NULL");
+    return;
+  }
+  if (pbox->left == NULL)
+    DEBUG("left : ? ");
+  else if (pbox->left->state == MUR)
+    DEBUG("left : MUR ");
+  else
+    DEBUG("left : ROUTE ");
 
+  if (pbox->right == NULL)
+    DEBUG("right : ? ");
+  else if (pbox->right->state == MUR)
+    DEBUG("right : MUR ");
+  else
+    DEBUG("right : ROUTE ");
+
+  if (pbox->up == NULL)
+    DEBUG("up : ? ");
+
+  else if (pbox->up->state == MUR)
+    DEBUG("up : MUR ");
+  else
+    DEBUG("up : ROUTE ");
+
+  if (pbox->down == NULL)
+    DEBUG("down : ? ");
+  else if (pbox->down->state == MUR)
+    DEBUG("down : MUR ");
+  else
+    DEBUG("down : ROUTE ");
+
+}
 struct box * newbox(void){
   DEBUG("ds new box");
   struct box * nbox;
@@ -256,12 +300,12 @@ struct box * newbox(void){
 void culdesacbuster(struct box * pbox){
   int issue;
   issue = 0;
-  DEBUG("depart");
+  DEBUG("cul de sac buster");
   if ( pbox == NULL ){
     printf("la case est NULL");
     return;
   }
-  DEBUG("depart 2");
+
   if ( pbox->left == NULL || pbox->left->state != MUR )
     issue++;
   if ( pbox->right == NULL || pbox->right->state != MUR )
@@ -272,8 +316,7 @@ void culdesacbuster(struct box * pbox){
     issue++;
 //there are only one issue
 // commenté pour testé mais surement a cause ce ca que ca segfault
-//  if ( issue < 2 && pbox != currentbox){
-  if ( issue < 2){
+  if ( issue < 2 && pbox != currentbox){
     pbox->state=MUR;
     DEBUG("cul de sac detect");
     if ( pbox->left != NULL && pbox->left->state != MUR )
