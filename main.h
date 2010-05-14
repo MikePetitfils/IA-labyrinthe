@@ -25,21 +25,26 @@
 
 #ifndef   	MAIN_H_
 # define   	MAIN_H_
-void WhatweGonnaDo(char * );
+void WhatweGonnaDo();
 
 
-#define MUR      255
+#define MUR      42
+#define UP       1
+#define DOWN     2
+#define RIGHT    3
+#define LEFT     4
 typedef struct box
 {
   struct box * left;
   struct box * right;
   struct box * up;
   struct box * down;
-  char state;
+  int state;
 
 }box;
-
-void update_current(const char * );
-void nouvelle_cases(const char * );
-void avancer(char * );
+void culdesacbuster(struct box *);
+void update_current(void);
+void nouvelle_cases(struct box **);
+struct box * newbox(void);
+void avancer(void);
 #endif 	    /* !MAIN_H_ */

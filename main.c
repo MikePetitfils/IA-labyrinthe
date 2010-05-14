@@ -16,16 +16,20 @@
 #include <netinet/in.h>
 #include "main.h"
 struct box *currentbox;
+int last;
 #define BUFFSIZE 32
+char buffer[BUFFSIZE];
 void Die(char *mess) { perror(mess); exit(1); }
 void DEBUG(char *mess) { printf("%s \n\r", mess); }
+
 int main(int argc, char *argv[]) {
   int sock;
+  int n;
   struct sockaddr_in echoserver;
-  char buffer[BUFFSIZE];
   unsigned int echolen;
   int received = 0;
-  currentbox = (box*)malloc(sizeof(struct box));
+  currentbox = newbox();
+  last=0;
   if (argc != 3) {
     fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
     exit(1);
@@ -46,6 +50,7 @@ int main(int argc, char *argv[]) {
               sizeof(echoserver)) < 0) {
     Die("Failed to connect with server");
   }
+
   //while true listen at the socket
   while (1){
     while (received < echolen) {
@@ -56,87 +61,104 @@ int main(int argc, char *argv[]) {
       received += bytes;
       buffer[bytes] = '\0';        /* Assure null terminated string */
       printf("what we gonna do : \n\r %c", buffer[0]);
-      WhatweGonnaDo(buffer);
-      avancer(buffer);
-      write(sock,buffer,strlen(buffer));
+      WhatweGonnaDo();
+      printf ("avancer\n\r");
+      avancer();
+      send(sock,buffer,strlen(buffer),0);
     }
   }
 }
 
-void WhatweGonnaDo(char * buff){
-  fprintf(stdout, buff);
+void WhatweGonnaDo(){
+  fprintf(stdout, buffer);
   // si c'est une réponse a voir
-  if (buff[0] == 'v'){
-    DEBUG("new box");
-    nouvelle_cases(buff);
+  if (buffer[0] == 'v'){
+
+    nouvelle_cases(&currentbox);
   }
   // si c'est une réponse a avancer on repositionne le current_box
-  else if (buff[0] == 'a'){
+  else if (buffer[0] == 'a'){
     DEBUG("update current");
-    update_current(buff);
-
+    update_current();
+  }
+  else if (buffer[0] == 'c'){
+    culdesacbuster(currentbox);
   }
 //TODO : what we do whith this fucking buffer!
-  memset(buff,0,BUFFSIZE);
+  memset(buffer,0,BUFFSIZE);
 }
 //si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
 //en gros sur reponse de la commande voir
-void nouvelle_cases(const char * buff){
-  DEBUG("nouvelle case");
-  if ( buff[1] == 'm' ){
-    if (currentbox->left == NULL ){
-      currentbox->left = (box *)malloc(sizeof(box));
-      currentbox->left->state=MUR;
+void nouvelle_cases(struct box ** pbox){
+
+
+  if ( buffer[1] == 'm' ){
+    if ((*pbox)->left == NULL ){
+      (*pbox)->left=newbox();
+      (*pbox)->left->state=MUR;
       DEBUG("left : mur");
     }
   }
   else
-    if ( currentbox->left == NULL ){
+  {
+    if ( ((*pbox)->left) == NULL ){
       DEBUG("left : box");
-      currentbox->left = (box *)malloc(sizeof(box));
-    }
-  if ( buff[2] == 'm' ){
-    if ( currentbox->right == NULL ){
-      DEBUG("right : mur");
-      currentbox->right = (box *)malloc(sizeof(box));
-      currentbox->right->state=MUR;
+      (*pbox)->left=newbox();
+      (*pbox)->left->right=(*pbox);
     }
   }
-  else
-    if ( currentbox->right == NULL ){
-      currentbox->right = (box *)malloc(sizeof(box));
+
+  if ( buffer[2] == 'm' ){
+    if ( (*pbox)->right == NULL ){
+      DEBUG("right : mur");
+      (*pbox)->right=newbox();
+      (*pbox)->right->state=MUR;
+    }
+  }else
+  {
+    if ( (*pbox)->right == NULL ){
+      (*pbox)->right = newbox();
+      (*pbox)->right->left=(*pbox);
       DEBUG("right : box");
     }
-  if ( buff[3] == 'm' ){
-    if ( currentbox->up == NULL ){
+  }
+
+  if ( buffer[3] == 'm' ){
+    if ( (*pbox)->up == NULL ){
       DEBUG("up : mur");
-      currentbox->up = (box *)malloc(sizeof(box));
-      currentbox->up->state=MUR;
+      (*pbox)->up = newbox();
+      (*pbox)->up->state=MUR;
+    }
+  }else
+  {
+    if ( (*pbox)->up == NULL ){
+      (*pbox)->up = newbox();
+      (*pbox)->up->down=(*pbox);
+      DEBUG("up : box");
     }
   }
-  else
-    if ( currentbox->up == NULL ){
-      currentbox->up = (box *)malloc(sizeof(box));
-      DEBUG("lup : box");
-    }
-  if ( buff[4] == 'm' )
-    if ( currentbox->down == NULL ){
+
+  if ( buffer[4] == 'm' )
+    if ( (*pbox)->down == NULL ){
       DEBUG("down : mur");
-      currentbox->down = (box *)malloc(sizeof(box));
-      currentbox->down->state=MUR;
+      (*pbox)->down = newbox();
+      (*pbox)->down->state=MUR;
     }
     else
-      if ( currentbox->down == NULL )
+    {
+      if ( (*pbox)->down == NULL )
       {
-        currentbox->down = (box *)malloc(sizeof(box));
+        (*pbox)->down = newbox();
+        (*pbox)->down->up=(*pbox);
         DEBUG("down : box");
       }
+    }
 
 
 }
 
-void update_current(const char * buff){
-  switch ( buff[1] ) {
+void update_current(){
+  switch ( buffer[1] ) {
   case 'u':
     currentbox = currentbox->up;
     break;
@@ -153,30 +175,103 @@ void update_current(const char * buff){
   }
 }
 
-void avancer(char * buff){
+void avancer(void){
+  DEBUG("avancer dedans");
   if ( currentbox->up != NULL ){
+    DEBUG("up not null");
     if ( currentbox->up->state != MUR){
-      buff = "avancer : up";
+      strcpy(buffer, "avancer : up\n\r");
+      currentbox=currentbox->up;
       DEBUG ("avancer :up ");
+      return;
     }
   }
-  else if ( currentbox->down != NULL ){
+  else
+    DEBUG("up null ");
+  if ( currentbox->down != NULL ){
     if ( currentbox->down->state != MUR){
-      buff = "avancer : down";
+      strcpy(buffer,"avancer : down\n\r");
+      currentbox=currentbox->down;
       DEBUG ("avancer :down ");
+      return;
     }
   }
-  else if ( currentbox->right != NULL ){
+  else
+    DEBUG("down null ");
+
+  if ( currentbox->right != NULL ){
     if ( currentbox->right->state != MUR){
-      buff = "avancer : right";
-      DEBUG ("avancer : right ");
+      strcpy(buffer,"avancer : right\n\r");
+      currentbox=currentbox->right;
+      DEBUG ("avancer : right\n\r");
+      return;
     }
   }
-  else if ( currentbox->left != NULL ){
+  else
+    DEBUG("right  null ");
+
+  if ( currentbox->left != NULL ){
     if ( currentbox->left->state != MUR){
-      DEBUG ("avancer : left ");
-      buff = "avancer : left";
+      DEBUG ("avancer : left\n\r");
+      currentbox=currentbox->left;
+      strcpy(buffer,"avancer : left\n\r");
+      return;
     }
+  }
+  else
+    DEBUG("left null ");
+
+
+}
+
+struct box * newbox(void){
+  DEBUG("ds new box");
+  struct box * nbox;
+  nbox = (box *)malloc(sizeof(box));
+  DEBUG("ds new box av assign");
+  nbox->left  = NULL;
+  DEBUG("ds new box apres");
+  nbox->right = NULL;
+  nbox->up    = NULL;
+  nbox->down  = NULL;
+  nbox->state = 0;
+}
+
+/*
+ * verifie si la case est un cul de sac si c'est un cul de sac la case est definit comme un mur et
+ * se rappel recursivement sur la case de la seul issue
+ * ne marque pas en mur la case si le joueur est dessus
+*/
+void culdesacbuster(struct box * pbox){
+  int issue;
+  issue = 0;
+  DEBUG("depart");
+  if ( pbox == NULL ){
+    printf("la case est NULL");
+    return;
+  }
+  DEBUG("depart 2");
+  if ( pbox->left == NULL || pbox->left->state != MUR )
+    issue++;
+  if ( pbox->right == NULL || pbox->right->state != MUR )
+    issue++;
+  if ( pbox->up == NULL || pbox->left->state != MUR )
+    issue++;
+  if ( pbox->down == NULL || pbox->left->state != MUR )
+    issue++;
+//there are only one issue
+//  if ( issue < 2 && pbox != currentbox){
+  if ( issue < 2){
+    pbox->state=MUR;
+    DEBUG("cul de sac detect");
+    if ( pbox->left != NULL && pbox->left->state != MUR )
+      culdesacbuster(pbox->left);
+    else if ( pbox->right != NULL && pbox->right->state != MUR )
+      culdesacbuster(pbox->right);
+    else if ( pbox->down != NULL && pbox->down->state != MUR )
+      culdesacbuster(pbox->down);
+    else if ( pbox->up != NULL && pbox->up->state != MUR )
+      culdesacbuster(pbox->up);
   }
 }
 
