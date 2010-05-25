@@ -23,7 +23,6 @@ void DEBUG(char *mess) { printf("%s \n\r", mess); }
 
 int main(int argc, char *argv[]) {
   int sock;
-  int n;
   struct sockaddr_in echoserver;
   unsigned int echolen;
   int received = 0;
@@ -98,7 +97,7 @@ void WhatweGonnaDo(){
 }
 /*si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
  *en gros sur reponse de la commande voir
- *on manipule l'objet courent je prend des pounteurs de pointeurs pour
+ *on manipule l'objet courent je prend des pointeurs de pointeurs pour
  *faire disparaitre au fur et a mesure la putain de variable globale avec
  *l'arbre
 */
@@ -193,7 +192,7 @@ void update_current(struct box ** pbox){
   }
 }
 /*
- * Cette fonctions sert a laissé le chois a l'IA pour avancer
+ * Cette fonction sert à laisser le choix à l'IA pour avancer
  * prend la première issue qui n'est pas un mur
  */
 void avancer(struct box ** pbox){
