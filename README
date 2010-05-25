@@ -1,7 +1,7 @@
 How to test
 
 simulate the serveur with netcat
-ex : nc -l 3333
+ex : nc -l -p 3333
 
 launch the client
 
