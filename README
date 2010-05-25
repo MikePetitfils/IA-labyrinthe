@@ -7,3 +7,27 @@ launch the client
 
 write the command to the client RTFS
 
+tuto git :
+
+sudo apt-get update
+#(' installe git core en dependance ')
+sudo apt-get install gitk git-gui
+# aller dans le repertoire pour vos sources
+cd /home/julien/src
+# vous choper tout le dépot en read only
+git clone http://github.com/Najon/IA-labyrinthe.git
+git config --global user.name "Massot Julien"
+git config --global user.mail massot.julien@gmail.com
+
+# vous faites vos changement
+# vous lancer git-gui
+# vous selectionner les fichiers à commiter,
+# faites davantage plusieurs commits simple pour que l'on comprenne
+# ou que l'on puisse retirer juste un patch et garder le reste
+# vous mettez un ptit message sympa qui décrit ce qu'il y a dans le commit
+# vous committez mais vous ne pushez pas
+# pour david et karim vous pouvez pushé si vous avez pris le bon URL read-write
+# ensuite vous lancé gtik vous devriez voir vos ou votre commit au dessus du remotes/origin
+# creer votre patch, un patch est créer par commit
+git format-patch origin
+# j'obtient un joli fichier 0001-fix-README.patch, que vous envoyez par mail a moi, david et karim et si possible toute la classe pour qu'on voye ce qui avance
