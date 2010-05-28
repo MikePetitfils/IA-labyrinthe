@@ -24,10 +24,8 @@ void DEBUG(char *mess) { printf("%s \n\r", mess); }
 int main(int argc, char *argv[]) {
   int sock;
   struct sockaddr_in echoserver;
-  unsigned int echolen;
-  int received = 0;
-  currentbox = newbox();
-  curseurbox = currentbox;
+  currentbox   = newbox();
+  curseurbox   = currentbox;
   last=0;
   if (argc != 3) {
     fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
@@ -52,17 +50,17 @@ int main(int argc, char *argv[]) {
 
   //while true listen at the socket
   while (1){
-    while (received < echolen) {
-      int bytes = 0;
-      if ((bytes = recv(sock, buffer, BUFFSIZE-1, 0)) < 1) {
-        Die("Failed to receive bytes from server");
-      }
-      received += bytes;
-      buffer[bytes] = '\0';        /* Assure null terminated string */
-      printf("what we gonna do : \n\r %c", buffer[0]);
-      WhatweGonnaDo();
-      send(sock,buffer,strlen(buffer),0);
+
+    int bytes = 0;
+    if ((bytes = recv(sock, buffer, BUFFSIZE-1, 0)) < 1) {
+      Die("Failed to receive bytes from server");
     }
+
+    buffer[bytes] = '\0';        /* Assure null terminated string */
+    printf("what we gonna do : \n\r %c", buffer[0]);
+    WhatweGonnaDo();
+    send(sock,buffer,strlen(buffer),0);
+
   }
 }
 /*
@@ -289,6 +287,7 @@ struct box * newbox(void){
   nbox->up    = NULL;
   nbox->down  = NULL;
   nbox->state = 0;
+  return nbox;
 }
 
 /*
