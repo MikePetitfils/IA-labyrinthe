@@ -101,11 +101,12 @@ void WhatweGonnaDo(){
 */
 
 void nouvelle_cases(struct box ** pbox){
-
+  int nbr_mur = 0;
   if ( buffer[2] == 'm' ){
     if ((*pbox)->left == NULL ){
       (*pbox)->left=newbox();
       (*pbox)->left->state |= MUR;
+      nbr_mur++;
       DEBUG("left : mur");
     }
   }
@@ -123,6 +124,7 @@ void nouvelle_cases(struct box ** pbox){
       DEBUG("right : mur");
       (*pbox)->right=newbox();
       (*pbox)->right->state |= MUR;
+      nbr_mur++;
     }
   }else
   {
@@ -138,6 +140,7 @@ void nouvelle_cases(struct box ** pbox){
       DEBUG("up : mur");
       (*pbox)->up = newbox();
       (*pbox)->up->state |= MUR;
+      nbr_mur++;
     }
   }else
   {
@@ -153,6 +156,7 @@ void nouvelle_cases(struct box ** pbox){
       DEBUG("down : mur");
       (*pbox)->down = newbox();
       (*pbox)->down->state |= MUR;
+      nbr_mur++;
     }
   }else
     {
@@ -163,7 +167,8 @@ void nouvelle_cases(struct box ** pbox){
         DEBUG("down : box");
       }
     }
-
+  if ( nbr_mur == 3 )
+    culdesacbuster( (*pbox) );
 
 }
 /*
