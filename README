@@ -2,6 +2,7 @@ How to test
 
 simulate the serveur with netcat
 ex : nc -l -p 3333
+ou : nc -l 3333 sa depend des netcat
 
 launch the client
 
@@ -31,3 +32,14 @@ git config --global user.mail massot.julien@gmail.com
 # creer votre patch, un patch est créer par commit
 git format-patch origin
 # j'obtient un joli fichier 0001-fix-README.patch, que vous envoyez par mail a moi, david et karim et si possible toute la classe pour qu'on voye ce qui avance
+
+
+
+pour tester si la box est à un état :
+pas un mur :
+if ( ! (pbox->state & MUR) )
+si il y a soit une mine soit une pelle soit un collet :
+if ( pbox->state & ( PELLE | COLLET | MINE ))
+si il y a une mine et un joueur
+if ( ( pbox->state & MINE )  && ( pbox->state & PLAYER ) )
+
