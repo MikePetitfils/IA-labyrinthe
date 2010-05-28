@@ -28,7 +28,12 @@
 void WhatweGonnaDo();
 
 
-#define MUR      42
+#define MUR      0x01
+#define PELLE    0x02
+#define MINE     0x04
+#define COLLET   0x08
+#define PLAYER   0x10
+
 #define UP       1
 #define DOWN     2
 #define RIGHT    3
@@ -39,7 +44,7 @@ typedef struct box
   struct box * right;
   struct box * up;
   struct box * down;
-  int state;
+  unsigned char state;
 
 }box;
 void culdesacbuster(struct box *);

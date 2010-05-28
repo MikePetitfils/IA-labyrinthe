@@ -107,7 +107,7 @@ void nouvelle_cases(struct box ** pbox){
   if ( buffer[2] == 'm' ){
     if ((*pbox)->left == NULL ){
       (*pbox)->left=newbox();
-      (*pbox)->left->state=MUR;
+      (*pbox)->left->state |= MUR;
       DEBUG("left : mur");
     }
   }
@@ -124,7 +124,7 @@ void nouvelle_cases(struct box ** pbox){
     if ( (*pbox)->right == NULL ){
       DEBUG("right : mur");
       (*pbox)->right=newbox();
-      (*pbox)->right->state=MUR;
+      (*pbox)->right->state |= MUR;
     }
   }else
   {
@@ -139,7 +139,7 @@ void nouvelle_cases(struct box ** pbox){
     if ( (*pbox)->up == NULL ){
       DEBUG("up : mur");
       (*pbox)->up = newbox();
-      (*pbox)->up->state=MUR;
+      (*pbox)->up->state |= MUR;
     }
   }else
   {
@@ -154,7 +154,7 @@ void nouvelle_cases(struct box ** pbox){
     if ( (*pbox)->down == NULL ){
       DEBUG("down : mur");
       (*pbox)->down = newbox();
-      (*pbox)->down->state=MUR;
+      (*pbox)->down->state |= MUR;
     }
   }else
     {
@@ -199,7 +199,7 @@ void avancer(struct box ** pbox){
   DEBUG("avancer dedans");
   if ( (*pbox)->up != NULL ){
     DEBUG("up not null");
-    if ( (*pbox)->up->state != MUR){
+    if ( !((*pbox)->up->state & MUR) ){
       strcpy(buffer, "avancer : up\n\r");
       (*pbox)=(*pbox)->up;
       DEBUG ("avancer :up ");
@@ -209,7 +209,7 @@ void avancer(struct box ** pbox){
   else
     DEBUG("up null ");
   if ( (*pbox)->down != NULL ){
-    if ( (*pbox)->down->state != MUR){
+    if ( !((*pbox)->down->state & MUR) ){
       strcpy(buffer,"avancer : down\n\r");
       (*pbox)=(*pbox)->down;
       DEBUG ("avancer :down ");
@@ -220,7 +220,7 @@ void avancer(struct box ** pbox){
     DEBUG("down null ");
 
   if ( (*pbox)->right != NULL ){
-    if ( (*pbox)->right->state != MUR){
+    if ( !((*pbox)->right->state & MUR) ){
       strcpy(buffer,"avancer : right\n\r");
       (*pbox)=(*pbox)->right;
       DEBUG ("avancer : right\n\r");
@@ -231,7 +231,7 @@ void avancer(struct box ** pbox){
     DEBUG("right  null ");
 
   if ( (*pbox)->left != NULL ){
-    if ( (*pbox)->left->state != MUR){
+    if ( !((*pbox)->left->state & MUR) ){
       DEBUG ("avancer : left\n\r");
       (*pbox)=(*pbox)->left;
       strcpy(buffer,"avancer : left\n\r");
@@ -250,14 +250,14 @@ void printbox(struct box * pbox){
   }
   if (pbox->left == NULL)
     DEBUG("left : ? ");
-  else if (pbox->left->state == MUR)
+  else if ( pbox->left->state & MUR )
     DEBUG("left : MUR ");
   else
     DEBUG("left : ROUTE ");
 
   if (pbox->right == NULL)
     DEBUG("right : ? ");
-  else if (pbox->right->state == MUR)
+  else if ( pbox->right->state & MUR )
     DEBUG("right : MUR ");
   else
     DEBUG("right : ROUTE ");
@@ -265,14 +265,14 @@ void printbox(struct box * pbox){
   if (pbox->up == NULL)
     DEBUG("up : ? ");
 
-  else if (pbox->up->state == MUR)
+  else if (pbox->up->state & MUR)
     DEBUG("up : MUR ");
   else
     DEBUG("up : ROUTE ");
 
   if (pbox->down == NULL)
     DEBUG("down : ? ");
-  else if (pbox->down->state == MUR)
+  else if (pbox->down->state & MUR)
     DEBUG("down : MUR ");
   else
     DEBUG("down : ROUTE ");
@@ -305,26 +305,25 @@ void culdesacbuster(struct box * pbox){
     return;
   }
 
-  if ( pbox->left == NULL || pbox->left->state != MUR )
+  if ( pbox->left == NULL || !( pbox->left->state & MUR ) )
     issue++;
-  if ( pbox->right == NULL || pbox->right->state != MUR )
+  if ( pbox->right == NULL || !( pbox->right->state & MUR ) )
     issue++;
-  if ( pbox->up == NULL || pbox->left->state != MUR )
+  if ( pbox->up == NULL || !( pbox->left->state & MUR ) )
     issue++;
-  if ( pbox->down == NULL || pbox->left->state != MUR )
+  if ( pbox->down == NULL || !( pbox->left->state & MUR ) )
     issue++;
 //there are only one issue
-// commenté pour testé mais surement a cause ce ca que ca segfault
   if ( issue < 2 && pbox != currentbox){
-    pbox->state=MUR;
+    pbox->state |= MUR;
     DEBUG("cul de sac detect");
-    if ( pbox->left != NULL && pbox->left->state != MUR )
+    if ( pbox->left != NULL && !( pbox->left->state & MUR ) )
       culdesacbuster(pbox->left);
-    else if ( pbox->right != NULL && pbox->right->state != MUR )
+    else if ( pbox->right != NULL && !( pbox->right->state & MUR ) )
       culdesacbuster(pbox->right);
-    else if ( pbox->down != NULL && pbox->down->state != MUR )
+    else if ( pbox->down != NULL && ! ( pbox->down->state & MUR ) )
       culdesacbuster(pbox->down);
-    else if ( pbox->up != NULL && pbox->up->state != MUR )
+    else if ( pbox->up != NULL && !( pbox->up->state & MUR ) )
       culdesacbuster(pbox->up);
   }
 }
