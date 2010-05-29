@@ -15,7 +15,6 @@
 #include "main.h"
 struct box *currentbox;
 struct box *curseurbox;
-int last;
 #define BUFFSIZE 32
 char buffer[BUFFSIZE];
 void Die(char *mess) { perror(mess); exit(1); }
@@ -24,9 +23,12 @@ void DEBUG(char *mess) { printf("%s \n\r", mess); }
 int main(int argc, char *argv[]) {
   int sock;
   struct sockaddr_in echoserver;
-  currentbox   = newbox();
-  curseurbox   = currentbox;
-  last=0;
+
+  currentbox    = newbox();
+  currentbox->x = 0;
+  currentbox->y = 0;
+  curseurbox    = currentbox;
+
   if (argc != 3) {
     fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
     exit(1);
@@ -102,73 +104,89 @@ void WhatweGonnaDo(){
 
 void nouvelle_cases(struct box ** pbox){
   int nbr_mur = 0;
-  if ( buffer[2] == 'm' ){
-    if ((*pbox)->left == NULL ){
-      (*pbox)->left=newbox();
+  if ((*pbox)->left == NULL ){
+    (*pbox)->left=newbox();
+    (*pbox)->left->right=(*pbox);
+    (*pbox)->left->x = ( (*pbox)->x - 1 );
+    (*pbox)->left->y = (*pbox)->y;
+
+    if ( buffer[2] == 'm' ){
       (*pbox)->left->state |= MUR;
       nbr_mur++;
       DEBUG("left : mur");
     }
-  }
-  else
-  {
-    if ( ((*pbox)->left) == NULL ){
+    else
       DEBUG("left : box");
-      (*pbox)->left=newbox();
-      (*pbox)->left->right=(*pbox);
-    }
-  }
 
-  if ( buffer[3] == 'm' ){
-    if ( (*pbox)->right == NULL ){
+  }else
+    if ((*pbox)->left->state & MUR )
+    {
+      nbr_mur++;
+    }
+
+  if ( (*pbox)->right == NULL ){
+    (*pbox)->right=newbox();
+    (*pbox)->right->left=(*pbox);
+    (*pbox)->right->x = ( (*pbox)->x + 1 );
+    (*pbox)->right->y = (*pbox)->y;
+
+    if ( buffer[3] == 'm' ){
       DEBUG("right : mur");
-      (*pbox)->right=newbox();
       (*pbox)->right->state |= MUR;
       nbr_mur++;
     }
-  }else
-  {
-    if ( (*pbox)->right == NULL ){
-      (*pbox)->right = newbox();
-      (*pbox)->right->left=(*pbox);
+    else
       DEBUG("right : box");
-    }
-  }
 
-  if ( buffer[4] == 'm' ){
-    if ( (*pbox)->up == NULL ){
+  }else
+    if ((*pbox)->right->state & MUR )
+    {
+      nbr_mur++;
+    }
+
+
+  if ( (*pbox)->up == NULL ){
+    (*pbox)->up = newbox();
+    (*pbox)->up->down=(*pbox);
+    (*pbox)->up->x = ( (*pbox)->x );
+    (*pbox)->up->y = ( (*pbox)->y + 1 );
+
+    if ( buffer[4] == 'm' ){
       DEBUG("up : mur");
-      (*pbox)->up = newbox();
       (*pbox)->up->state |= MUR;
       nbr_mur++;
     }
-  }else
-  {
-    if ( (*pbox)->up == NULL ){
-      (*pbox)->up = newbox();
-      (*pbox)->up->down=(*pbox);
+    else
       DEBUG("up : box");
+  }else
+    if ((*pbox)->up->state & MUR )
+    {
+      nbr_mur++;
     }
-  }
 
-  if ( buffer[5] == 'm' ){
-    if ( (*pbox)->down == NULL ){
+  if ( (*pbox)->down == NULL ){
+    (*pbox)->down = newbox();
+    (*pbox)->down->up=(*pbox);
+    (*pbox)->down->x = ( (*pbox)->x );
+    (*pbox)->down->y = ( (*pbox)->y - 1 );
+
+    if ( buffer[5] == 'm' ){
+
       DEBUG("down : mur");
-      (*pbox)->down = newbox();
       (*pbox)->down->state |= MUR;
       nbr_mur++;
     }
+    else
+      DEBUG("down : box");
+
   }else
+    if ((*pbox)->down->state & MUR )
     {
-      if ( (*pbox)->down == NULL )
-      {
-        (*pbox)->down = newbox();
-        (*pbox)->down->up=(*pbox);
-        DEBUG("down : box");
-      }
+      nbr_mur++;
     }
+
   if ( nbr_mur == 3 )
-    culdesacbuster( (*pbox) );
+    culdesacbuster((*pbox));
 
 }
 /*
@@ -280,6 +298,7 @@ void printbox(struct box * pbox){
   else
     DEBUG("down : ROUTE ");
 
+  printf("coordonnees : { %d | %d } \n\r",pbox->x, pbox->y);
 }
 struct box * newbox(void){
   DEBUG("ds new box");
@@ -309,16 +328,7 @@ void culdesacbuster(struct box * pbox){
     return;
   }
 
-  if ( pbox->left == NULL || !( pbox->left->state & MUR ) )
-    issue++;
-  if ( pbox->right == NULL || !( pbox->right->state & MUR ) )
-    issue++;
-  if ( pbox->up == NULL || !( pbox->left->state & MUR ) )
-    issue++;
-  if ( pbox->down == NULL || !( pbox->left->state & MUR ) )
-    issue++;
-//there are only one issue
-  if ( issue < 2 && pbox != currentbox){
+  if ( pbox != currentbox){
     pbox->state |= MUR;
     DEBUG("cul de sac detect");
     if ( pbox->left != NULL && !( pbox->left->state & MUR ) )

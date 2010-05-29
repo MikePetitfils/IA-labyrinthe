@@ -45,6 +45,8 @@ typedef struct box
   struct box * up;
   struct box * down;
   unsigned char state;
+  int x;
+  int y;
 
 }box;
 void culdesacbuster(struct box *);
