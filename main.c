@@ -16,15 +16,15 @@
 #include <glib/gi18n.h>
 #include <glib/gtypes.h>
 #include <glib/ghash.h>
+#include "libbox.h"
 #include "main.h"
-
 struct box *currentbox;
 struct box *curseurbox;
 GHashTable *ht;
 #define BUFFSIZE 32
 char buffer[BUFFSIZE];
 void Die(char *mess) { perror(mess); exit(1); }
-void DEBUG(char *mess) { printf("%s \n\r", mess); }
+
 
 int main(int argc, char *argv[]) {
   int sock;
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
   currentbox->x = 0;
   currentbox->y = 0;
   curseurbox    = currentbox;
-  addtohtab(currentbox);
+  addboxtohtab(currentbox, ht);
   if (argc != 3) {
     fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
     exit(1);
@@ -116,7 +116,8 @@ void nouvelle_cases(struct box ** pbox){
     (*pbox)->left->right=(*pbox);
     (*pbox)->left->x = ( (*pbox)->x - 1 );
     (*pbox)->left->y = (*pbox)->y;
-    addtohtab(*pbox);
+    addboxtohtab((*pbox)->left, ht);
+    chainbox((*pbox)->left, ht);
     if ( buffer[2] == 'm' ){
       (*pbox)->left->state |= MUR;
       nbr_mur++;
@@ -136,7 +137,8 @@ void nouvelle_cases(struct box ** pbox){
     (*pbox)->right->left=(*pbox);
     (*pbox)->right->x = ( (*pbox)->x + 1 );
     (*pbox)->right->y = (*pbox)->y;
-    addtohtab(*pbox);
+    addboxtohtab((*pbox)->right, ht);
+    chainbox((*pbox)->right, ht);
     if ( buffer[3] == 'm' ){
       DEBUG("right : mur");
       (*pbox)->right->state |= MUR;
@@ -157,7 +159,8 @@ void nouvelle_cases(struct box ** pbox){
     (*pbox)->up->down=(*pbox);
     (*pbox)->up->x = ( (*pbox)->x );
     (*pbox)->up->y = ( (*pbox)->y + 1 );
-    addtohtab(*pbox);
+    addboxtohtab((*pbox)->up, ht);
+    chainbox((*pbox)->up, ht);
     if ( buffer[4] == 'm' ){
       DEBUG("up : mur");
       (*pbox)->up->state |= MUR;
@@ -176,7 +179,9 @@ void nouvelle_cases(struct box ** pbox){
     (*pbox)->down->up=(*pbox);
     (*pbox)->down->x = ( (*pbox)->x );
     (*pbox)->down->y = ( (*pbox)->y - 1 );
-    addtohtab(*pbox);
+    addboxtohtab((*pbox)->down, ht);
+    chainbox((*pbox)->down, ht);
+
     if ( buffer[5] == 'm' ){
 
       DEBUG("down : mur");
@@ -271,55 +276,7 @@ void avancer(struct box ** pbox){
 
 
 }
-void printbox(struct box * pbox){
-  if (pbox == NULL){
-    DEBUG("ERREUR : la case courante est NULL");
-    return;
-  }
-  if (pbox->left == NULL)
-    DEBUG("left : ? ");
-  else if ( pbox->left->state & MUR )
-    DEBUG("left : MUR ");
-  else
-    DEBUG("left : ROUTE ");
 
-  if (pbox->right == NULL)
-    DEBUG("right : ? ");
-  else if ( pbox->right->state & MUR )
-    DEBUG("right : MUR ");
-  else
-    DEBUG("right : ROUTE ");
-
-  if (pbox->up == NULL)
-    DEBUG("up : ? ");
-
-  else if (pbox->up->state & MUR)
-    DEBUG("up : MUR ");
-  else
-    DEBUG("up : ROUTE ");
-
-  if (pbox->down == NULL)
-    DEBUG("down : ? ");
-  else if (pbox->down->state & MUR)
-    DEBUG("down : MUR ");
-  else
-    DEBUG("down : ROUTE ");
-
-  printf("coordonnees : { %d | %d } \n\r",pbox->x, pbox->y);
-}
-struct box * newbox(void){
-  DEBUG("ds new box");
-  struct box * nbox;
-  nbox = (box *)malloc(sizeof(box));
-  DEBUG("ds new box av assign");
-  nbox->left  = NULL;
-  DEBUG("ds new box apres");
-  nbox->right = NULL;
-  nbox->up    = NULL;
-  nbox->down  = NULL;
-  nbox->state = 0;
-  return nbox;
-}
 
 /*
  * verifie si la case est un cul de sac si c'est un cul de sac la case est definit comme un mur et
@@ -348,52 +305,7 @@ void culdesacbuster(struct box * pbox){
       culdesacbuster(pbox->up);
   }
 }
-// ajoute la box dans la hash tab
-inline void addtohtab(struct box * pbox){
-  double *key = (double *) malloc(sizeof(double));
-  *key =( ( pbox->x << sizeof(int) ) | pbox->y );
-  g_hash_table_insert(ht,key,pbox);
 
 
-}
 
-//retourne la box qui a les coordonnée xy NULL si aucun
-inline struct box * getBoxbyXY(int x, int y){
-  double key = ( (x << sizeof(int) ) | y );
-  return g_hash_table_lookup(ht, &key);
-}
 
-//chaine la box avec les cases autours
-void chainbox(struct box * pbox){
-  struct box * ptempbox = NULL;
-
-  //si il y a une case a x - 1 on fait le chainage a gauche
-  ptempbox = getBoxbyXY( (pbox->x - 1 ), pbox->y);
-  if (ptempbox != NULL){
-    pbox->left = ptempbox;
-    ptempbox->right = pbox;
-    DEBUG("chainage a gauche");
-  }
-
-  ptempbox = getBoxbyXY( (pbox->x + 1 ), pbox->y);
-  if (ptempbox != NULL){
-    pbox->right = ptempbox;
-    ptempbox->left = pbox;
-    DEBUG("chainage a droite");
-  }
-
-  ptempbox = getBoxbyXY( pbox->x, ( pbox->y - 1 ));
-  if (ptempbox != NULL){
-    pbox->down = ptempbox;
-    ptempbox->up = pbox;
-    DEBUG("chainage en bas");
-  }
-
-  ptempbox = getBoxbyXY( pbox->x, ( pbox->y + 1 ));
-  if (ptempbox != NULL){
-    pbox->up = ptempbox;
-    ptempbox->down = pbox;
-    DEBUG("chainage en haut");
-  }
-
-}

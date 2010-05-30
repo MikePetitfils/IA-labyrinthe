@@ -1,7 +1,7 @@
 /*
-** main.h
+** libbox.h
 ** Login : <najon@najon-desktop>
-** Started on  Thu May 13 17:04:44 2010 najon
+** Started on  Sun May 30 03:10:47 2010 najon
 ** $Id$
 **
 ** Author(s):
@@ -23,15 +23,39 @@
 ** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-#ifndef   	MAIN_H_
-# define   	MAIN_H_
-void WhatweGonnaDo();
+
+#ifndef   	LIBBOX_H_
+# define   	LIBBOX_H_
+#define MUR      0x01
+#define PELLE    0x02
+#define MINE     0x04
+#define COLLET   0x08
+#define PLAYER   0x10
+
+#define UP       1
+#define DOWN     2
+#define RIGHT    3
+#define LEFT     4
 
 
+typedef struct box
+{
+  struct box * left;
+  struct box * right;
+  struct box * up;
+  struct box * down;
+  unsigned char state;
+  int x;
+  int y;
 
-void culdesacbuster(struct box *);
-void nouvelle_cases(struct box **);
-void update_current(struct box **);
+}box;
 
-void avancer(struct box **);
-#endif 	    /* !MAIN_H_ */
+
+struct box * newbox(void);
+void printbox(struct box *);
+inline void addboxtohtab(struct box *, GHashTable *);
+inline struct box * getBoxbyXY(int, int, GHashTable *);
+void chainbox(struct box *, GHashTable *);
+void DEBUG(char *);
+
+#endif 	    /* !LIBBOX_H_ */
