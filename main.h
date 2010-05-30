@@ -55,4 +55,6 @@ void update_current(struct box **);
 struct box * newbox(void);
 void avancer(struct box **);
 void printbox(struct box *);
+inline void addtohtab(struct box *);
+inline struct box * getBoxbyXY(int, int);
 #endif 	    /* !MAIN_H_ */
