@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <glib.h>
 #include "libbox.h"
+
 void DEBUG(char *mess) { printf("%s \n\r", mess); }
 // ajoute la box dans la hash tab
 inline void addboxtohtab(struct box * pbox, GHashTable *ht){
@@ -96,6 +97,11 @@ void printbox(struct box * pbox){
     DEBUG("ERREUR : la case courante est NULL");
     return;
   }
+  if (pbox->state & MUR)
+    DEBUG("cette case est un mur");
+  else
+    DEBUG("cette case est une route");
+
   if (pbox->left == NULL)
     DEBUG("left : ? ");
   else if ( pbox->left->state & MUR )
