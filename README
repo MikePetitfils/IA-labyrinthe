@@ -1,3 +1,7 @@
+DEPNDANCE :
+libglib2.0-dev
+
+
 How to test
 
 simulate the serveur with netcat
@@ -6,7 +10,18 @@ ou : nc -l 3333 sa depend des netcat
 
 launch the client
 
+afficher la case courante
+p
+afficher le  curseur
+pc
+
+reveller ce qu'il y a autour du curseur
+vcmmll
+<v : voir><c : curseur><m : mur left><m : mur right><tout mais pas m : route haut><tout mais pas m : route bas>
+
 write the command to the client RTFS
+
+
 
 tuto git :
 

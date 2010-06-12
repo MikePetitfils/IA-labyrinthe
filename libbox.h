@@ -31,6 +31,9 @@
 #define MINE     0x04
 #define COLLET   0x08
 #define PLAYER   0x10
+#define EXIT     0x20
+#define UNKNOWN  0x40
+#define ROUTE    0x80
 
 #define UP       1
 #define DOWN     2
@@ -51,8 +54,10 @@ typedef struct box
 }box;
 
 
-struct box * newbox(void);
+struct box * newbox(char, int , int , GHashTable *);
 void printbox(struct box *);
+void givestatebox(struct box *, char* );
+
 inline void addboxtohtab(struct box *, GHashTable *);
 inline struct box * getBoxbyXY(int, int, GHashTable *);
 void chainbox(struct box *, GHashTable *);

@@ -30,7 +30,7 @@ void WhatweGonnaDo();
 
 
 void culdesacbuster(struct box *);
-void nouvelle_cases(struct box **);
+void nouvelle_cases(struct box **, char *);
 void update_current(struct box **);
 
 void avancer(struct box **);

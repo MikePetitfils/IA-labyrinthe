@@ -21,7 +21,7 @@
 struct box *currentbox;
 struct box *curseurbox;
 GHashTable *ht;
-#define BUFFSIZE 32
+#define BUFFSIZE 255
 char buffer[BUFFSIZE];
 void Die(char *mess) { perror(mess); exit(1); }
 
@@ -29,15 +29,11 @@ void Die(char *mess) { perror(mess); exit(1); }
 int main(int argc, char *argv[]) {
   int sock;
   struct sockaddr_in echoserver;
-  ht = g_hash_table_new(g_double_hash, g_double_equal);
+  ht = g_hash_table_new(g_str_hash, g_str_equal);
 
-  currentbox    = newbox();
-  currentbox->x = 0;
-  currentbox->y = 0;
-  curseurbox    = currentbox;
-  addboxtohtab(currentbox, ht);
-  if (argc != 3) {
-    fprintf(stderr, "USAGE: %s <server_ip> <port>\n", argv[0]);
+  currentbox    = newbox(ROUTE, 0,0,ht);
+  if (argc != 4) {
+    fprintf(stderr, "USAGE: %s <server_ip> <port> <pseudo>\n", argv[0]);
     exit(1);
   }
   /* Create the TCP socket */
@@ -56,7 +52,7 @@ int main(int argc, char *argv[]) {
               sizeof(echoserver)) < 0) {
     Die("Failed to connect with server");
   }
-
+  send(sock,argv[3], strlen(argv[3]),0);
   //while true listen at the socket
   while (1){
 
@@ -66,8 +62,11 @@ int main(int argc, char *argv[]) {
     }
 
     buffer[bytes] = '\0';        /* Assure null terminated string */
-    printf("what we gonna do : \n\r %c", buffer[0]);
+
+    //printf("what we gonna do : \n\r %c", buffer[0]);
     WhatweGonnaDo();
+    //avancer(currentbox);
+
     send(sock,buffer,strlen(buffer),0);
 
   }
@@ -77,31 +76,76 @@ int main(int argc, char *argv[]) {
  *v pour voir a pour
  */
 void WhatweGonnaDo(){
+  unsigned int i, j,k;
+  char response[9];
   fprintf(stdout, buffer);
   // si c'est une réponse a voir
-  if (buffer[0] == 'v'){
-    if (buffer[1] == 'c')
-      nouvelle_cases(&curseurbox);
-    else
-      nouvelle_cases(&currentbox);
+  if (buffer[0] == 'P'){
+    //eat until "Timeout:"
+    for ( i = 0; buffer[i] != ':'; i++);
+      //if( i == strlen(buffer) )
+      //break;
+      // }
+
+    i++;
+    /* printf("buffer ----------------------------- \n\r"); */
+    /* for ( k = i; k < strlen(buffer);k++) */
+    /*   printf("%c", buffer[k]); */
+    /* printf("buffer ----------------------------- \n\r"); */
+    //eat until North:
+    for ( j = 0; j < 8 ; j++ ){
+      for ( ; buffer[i] != ':'; i++){
+        if( i == strlen(buffer) )
+          break;
+        else if (buffer[i] == ',')
+          break;
+      }
+      /* printf("buffer ----------------------------- \n\r"); */
+      /* for ( k = i; k < strlen(buffer);k++) */
+      /*   printf("%c", buffer[k]); */
+      /* printf("j : %d \n\r", j); */
+      /* printf("buffer ----------------------------- \n\r"); */
+      i++;
+
+      switch(buffer[i]){
+      case '-':
+        response[j] = UNKNOWN;
+        printf("response[%d] = UNKNOWN; \n\r",j);
+        break;
+      case'0':
+        response[j] = ROUTE;
+        printf("response[%d] = ROUTE; \n\r",j);
+        break;
+      case'1':
+        response[j] = MUR;
+        printf("response[%d] = MUR; \n\r",j);
+        break;
+      case'2':
+        response[j] = PLAYER;
+        printf("response[%d] = PLAYER; \n\r",j);
+        break;
+      case '3':
+        response[j] = EXIT;
+        printf("response[%d] = EXIT; \n\r",j);
+        break;
+      default:
+        DEBUG("erreur de parsage");
+        exit(1);
+      }
+
+    }
+
+    response[j]='\0';
+    nouvelle_cases(&currentbox, response);
   }
-  // si c'est une réponse a avancer on repositionne le current_box
-  else if (buffer[0] == 'u'){
-    DEBUG("update current");
-    update_current(&curseurbox);
-  }
-  else if (buffer[0] == 'c')
-    culdesacbuster(curseurbox);
-  else if (buffer[0] == 'p')
-    if (buffer[1] == 'c')
-      printbox(curseurbox);
-    else
-      printbox(currentbox);
-  else if (buffer[0] == 'a')
-    avancer(&currentbox);
-//TODO : what we do whith this fucking buffer!
+
+
+  //TODO : what we do whith this fucking buffer!
   memset(buffer,0,BUFFSIZE);
+  avancer(&currentbox);
 }
+
+
 /*si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
  *en gros sur reponse de la commande voir
  *on manipule l'objet courent je prend des pointeurs de pointeurs pour
@@ -109,96 +153,28 @@ void WhatweGonnaDo(){
  *l'arbre
 */
 
-void nouvelle_cases(struct box ** pbox){
+void nouvelle_cases(struct box ** pbox, char * buff){
   int nbr_mur = 0;
-  if ((*pbox)->left == NULL ){
-    (*pbox)->left=newbox();
-    (*pbox)->left->right=(*pbox);
-    (*pbox)->left->x = ( (*pbox)->x - 1 );
-    (*pbox)->left->y = (*pbox)->y;
-    addboxtohtab((*pbox)->left, ht);
-    chainbox((*pbox)->left, ht);
-    if ( buffer[2] == 'm' ){
-      (*pbox)->left->state |= MUR;
-      nbr_mur++;
-      DEBUG("left : mur");
-    }
-    else
-      DEBUG("left : box");
 
-  }else
-    if ((*pbox)->left->state & MUR )
-    {
-      nbr_mur++;
-    }
+  if ((*pbox)->up == NULL )
+    (*pbox)->up=newbox(buff[0],(*pbox)->x, (*pbox)->y + 1, ht);
+  if ((*pbox)->up->up == NULL )
+    (*pbox)->up->up=newbox(buff[1],(*pbox)->x, (*pbox)->y + 2, ht);
 
-  if ( (*pbox)->right == NULL ){
-    (*pbox)->right=newbox();
-    (*pbox)->right->left=(*pbox);
-    (*pbox)->right->x = ( (*pbox)->x + 1 );
-    (*pbox)->right->y = (*pbox)->y;
-    addboxtohtab((*pbox)->right, ht);
-    chainbox((*pbox)->right, ht);
-    if ( buffer[3] == 'm' ){
-      DEBUG("right : mur");
-      (*pbox)->right->state |= MUR;
-      nbr_mur++;
-    }
-    else
-      DEBUG("right : box");
+  if ((*pbox)->down == NULL )
+    (*pbox)->down=newbox(buff[2],(*pbox)->x, (*pbox)->y - 1, ht);
+  if ((*pbox)->down->down == NULL )
+    (*pbox)->down->down=newbox(buff[3],(*pbox)->x, (*pbox)->y - 2, ht);
 
-  }else
-    if ((*pbox)->right->state & MUR )
-    {
-      nbr_mur++;
-    }
+  if ((*pbox)->left == NULL )
+    (*pbox)->left=newbox(buff[4],(*pbox)->x - 1, (*pbox)->y, ht);
+  if ((*pbox)->left->left == NULL )
+    (*pbox)->left->left=newbox(buff[5],(*pbox)->x - 2, (*pbox)->y, ht);
 
-
-  if ( (*pbox)->up == NULL ){
-    (*pbox)->up = newbox();
-    (*pbox)->up->down=(*pbox);
-    (*pbox)->up->x = ( (*pbox)->x );
-    (*pbox)->up->y = ( (*pbox)->y + 1 );
-    addboxtohtab((*pbox)->up, ht);
-    chainbox((*pbox)->up, ht);
-    if ( buffer[4] == 'm' ){
-      DEBUG("up : mur");
-      (*pbox)->up->state |= MUR;
-      nbr_mur++;
-    }
-    else
-      DEBUG("up : box");
-  }else
-    if ((*pbox)->up->state & MUR )
-    {
-      nbr_mur++;
-    }
-
-  if ( (*pbox)->down == NULL ){
-    (*pbox)->down = newbox();
-    (*pbox)->down->up=(*pbox);
-    (*pbox)->down->x = ( (*pbox)->x );
-    (*pbox)->down->y = ( (*pbox)->y - 1 );
-    addboxtohtab((*pbox)->down, ht);
-    chainbox((*pbox)->down, ht);
-
-    if ( buffer[5] == 'm' ){
-
-      DEBUG("down : mur");
-      (*pbox)->down->state |= MUR;
-      nbr_mur++;
-    }
-    else
-      DEBUG("down : box");
-
-  }else
-    if ((*pbox)->down->state & MUR )
-    {
-      nbr_mur++;
-    }
-
-  if ( nbr_mur == 3 )
-    culdesacbuster((*pbox));
+  if ((*pbox)->right == NULL )
+    (*pbox)->right=newbox(buff[6],(*pbox)->x + 1, (*pbox)->y, ht);
+  if ((*pbox)->right->right == NULL )
+    (*pbox)->right->right = newbox(buff[7],(*pbox)->x + 2, (*pbox)->y, ht);
 
 }
 /*
@@ -233,7 +209,7 @@ void avancer(struct box ** pbox){
   if ( (*pbox)->up != NULL ){
     DEBUG("up not null");
     if ( !((*pbox)->up->state & MUR) ){
-      strcpy(buffer, "avancer : up\n\r");
+      strcpy(buffer, "MOVE North\0");
       (*pbox)=(*pbox)->up;
       DEBUG ("avancer :up ");
       return;
@@ -243,7 +219,7 @@ void avancer(struct box ** pbox){
     DEBUG("up null ");
   if ( (*pbox)->down != NULL ){
     if ( !((*pbox)->down->state & MUR) ){
-      strcpy(buffer,"avancer : down\n\r");
+      strcpy(buffer,"MOVE South\0");
       (*pbox)=(*pbox)->down;
       DEBUG ("avancer :down ");
       return;
@@ -254,7 +230,7 @@ void avancer(struct box ** pbox){
 
   if ( (*pbox)->right != NULL ){
     if ( !((*pbox)->right->state & MUR) ){
-      strcpy(buffer,"avancer : right\n\r");
+      strcpy(buffer,"MOVE East\0");
       (*pbox)=(*pbox)->right;
       DEBUG ("avancer : right\n\r");
       return;
@@ -265,9 +241,9 @@ void avancer(struct box ** pbox){
 
   if ( (*pbox)->left != NULL ){
     if ( !((*pbox)->left->state & MUR) ){
-      DEBUG ("avancer : left\n\r");
+      DEBUG ("avancer left");
       (*pbox)=(*pbox)->left;
-      strcpy(buffer,"avancer : left\n\r");
+      strcpy(buffer,"MOVE West\0");
       return;
     }
   }
@@ -305,7 +281,5 @@ void culdesacbuster(struct box * pbox){
       culdesacbuster(pbox->up);
   }
 }
-
-
 
 

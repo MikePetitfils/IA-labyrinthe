@@ -26,34 +26,57 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <glib.h>
+#include <string.h>
 #include "libbox.h"
 
 void DEBUG(char *mess) { printf("%s \n\r", mess); }
 // ajoute la box dans la hash tab
 inline void addboxtohtab(struct box * pbox, GHashTable *ht){
-  double *key = (double *) malloc(sizeof(double));
-  *key =( ( pbox->x << sizeof(int) ) | pbox->y );
+  char* key = malloc(sizeof(char)*15);
+  memset(key,0,sizeof(key));
+  snprintf(key,sizeof(key),"%d%d",pbox->x,pbox->y);
   g_hash_table_insert(ht,key,pbox);
 
 }
 
 //retourne la box qui a les coordonnée xy NULL si aucun
 inline struct box * getBoxbyXY(int x, int y, GHashTable *ht){
-  double key = ( (x << sizeof(int) ) | y );
-  return g_hash_table_lookup(ht, &key);
+  char key[15];
+  struct box * pbox = NULL;
+  memset(key,0,sizeof(key));
+  snprintf(key,sizeof(key),"%d%d",x,y);
+  pbox = g_hash_table_lookup(ht, &key);
+  if (pbox == NULL)
+    return NULL;
+
+  if ( (pbox->x != x ) | (pbox->y != y)){
+    DEBUG("ERROR HTAB");
+  }
+  return pbox;
+
 }
 
-struct box * newbox(void){
-  DEBUG("ds new box");
+struct box * newbox(char state, int x, int y, GHashTable *ht){
+  //DEBUG("ds new box");
   struct box * nbox;
   nbox = (box *)malloc(sizeof(box));
-  DEBUG("ds new box av assign");
+  //DEBUG("ds new box av assign");
   nbox->left  = NULL;
-  DEBUG("ds new box apres");
+  //DEBUG("ds new box apres");
   nbox->right = NULL;
   nbox->up    = NULL;
   nbox->down  = NULL;
-  nbox->state = 0;
+  nbox->state = state;
+  nbox->x     = x;
+  nbox->y     = y;
+  addboxtohtab( nbox, ht );
+  if (nbox != getBoxbyXY(x,y, ht)){
+    printf("error htab dans newbox");
+    exit(1);
+  }
+  chainbox( nbox, ht);
+  printbox(nbox);
+
   return nbox;
 }
 
@@ -66,72 +89,63 @@ void chainbox(struct box * pbox, GHashTable *ht){
   if (ptempbox != NULL){
     pbox->left = ptempbox;
     ptempbox->right = pbox;
-    DEBUG("chainage a gauche");
   }
-
   ptempbox = getBoxbyXY( (pbox->x + 1 ), pbox->y, ht);
   if (ptempbox != NULL){
     pbox->right = ptempbox;
     ptempbox->left = pbox;
-    DEBUG("chainage a droite");
   }
-
   ptempbox = getBoxbyXY( pbox->x, ( pbox->y - 1 ), ht);
   if (ptempbox != NULL){
     pbox->down = ptempbox;
     ptempbox->up = pbox;
-    DEBUG("chainage en bas");
   }
-
   ptempbox = getBoxbyXY( pbox->x, ( pbox->y + 1 ), ht);
   if (ptempbox != NULL){
     pbox->up = ptempbox;
     ptempbox->down = pbox;
-    DEBUG("chainage en haut");
   }
-
+  //  printbox(pbox);
 }
-
 void printbox(struct box * pbox){
+  char buff[15];
+  memset(buff,0, sizeof(buff));
   if (pbox == NULL){
     DEBUG("ERREUR : la case courante est NULL");
     return;
   }
-  if (pbox->state & MUR)
-    DEBUG("cette case est un mur");
-  else
-    DEBUG("cette case est une route");
-
-  if (pbox->left == NULL)
-    DEBUG("left : ? ");
-  else if ( pbox->left->state & MUR )
-    DEBUG("left : MUR ");
-  else
-    DEBUG("left : ROUTE ");
-
-  if (pbox->right == NULL)
-    DEBUG("right : ? ");
-  else if ( pbox->right->state & MUR )
-    DEBUG("right : MUR ");
-  else
-    DEBUG("right : ROUTE ");
-
-  if (pbox->up == NULL)
-    DEBUG("up : ? ");
-
-  else if (pbox->up->state & MUR)
-    DEBUG("up : MUR ");
-  else
-    DEBUG("up : ROUTE ");
-
-  if (pbox->down == NULL)
-    DEBUG("down : ? ");
-  else if (pbox->down->state & MUR)
-    DEBUG("down : MUR ");
-  else
-    DEBUG("down : ROUTE ");
-
+  givestatebox(pbox, buff);
+  printf("la case est : %s \n\r", buff);
+  givestatebox(pbox->left, buff);
+  printf("left : %s \n\r",  buff);
+  givestatebox(pbox->right, buff);
+  printf("right : %s\n\r", buff);
+  givestatebox(pbox->up, buff);
+  printf("up : %s\n\r", buff);
+  givestatebox(pbox->down, buff);
+  printf("down : %s\n\r", buff);
   printf("coordonnees : { %d | %d } \n\r",pbox->x, pbox->y);
 }
 
+void givestatebox(struct box * pbox, char* rep){
+    if (  pbox == NULL   ){
+      strcpy(rep, "NULL\0");
+      return;
+    }
+  if ( pbox->state & UNKNOWN){
+    strcpy(rep, "UNKNOWN\0");
+    return;
+  }
+  if ( pbox->state & EXIT ){
+    strcpy(rep, "EXIT\0");
+    return;
+  }
+  if ( pbox->state & ROUTE ){
+    strcpy(rep, "ROUTE\0");
+  return;
+  }
+
+  strcpy(rep, "MUR\0");
+
+}
 
