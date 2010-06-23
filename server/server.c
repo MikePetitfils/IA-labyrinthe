@@ -9,6 +9,7 @@
 
 void Die(char *mess) { perror(mess); exit(1); }
 void DEBUG(char *mess) { printf("%s \n\r", mess); }
+void print_map(Info_map *map, int *mapp);
 
 /* console log */
 void log_to_console(char *msg){
@@ -164,7 +165,7 @@ int main(int argc, char **argv)
                 memset(direction,0,120);
                 memcpy(direction,buffer+5,120);
 
-                print_map(&current_map);
+                print_map(&current_map, map);
                 printf("move[%d, %d] : %d\n", current_player->x, current_player->y, map[current_map.width *current_player->y + current_player->x]);
 
                 /* move the player */
@@ -1122,7 +1123,7 @@ void load_map(Info_map *infoMap){
 
 }
 
-void print_map(Info_map *map)
+void print_map(Info_map *map, int *mapp)
 {
   int i, j;
   if (!map)
@@ -1130,7 +1131,7 @@ void print_map(Info_map *map)
   printf("print map %d, %d\n", map->height, map->width);
   for(i=0; i<map->height;i++){
     for(j=0; j<map->width;j++){
-      printf("%d", map->map[map->width * i + j]);
+      printf("%d", mapp[map->width * i + j]);
     }
     printf("\n");
   }
