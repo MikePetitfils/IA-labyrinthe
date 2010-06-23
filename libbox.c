@@ -29,31 +29,131 @@
 #include <string.h>
 #include "libbox.h"
 
-void DEBUG(char *mess) { printf("%s \n\r", mess); }
-// ajoute la box dans la hash tab
-inline void addboxtohtab(struct box * pbox, GHashTable *ht){
-  char* key = malloc(sizeof(char)*15);
-  memset(key,0,sizeof(key));
-  snprintf(key,sizeof(key),"%d%d",pbox->x,pbox->y);
-  g_hash_table_insert(ht,key,pbox);
+void DEBUG(char *mess)
+{
+  printf("%s\n", mess);
+}
 
+static int gmaxx = 0;
+static int gmaxy = 0;
+static int gminx = 0;
+static int gminy = 0;
+
+// ajoute la box dans la hash tab
+inline box *addboxtohtab(struct box * pbox, GHashTable *ht){
+  char* key = malloc(sizeof(char)*16);
+
+  memset(key,0, 16);
+  snprintf(key, 16,"%.4d%.4d",pbox->x, pbox->y);
+  box *b = getBoxbyXY(pbox->x, pbox->y, ht);
+  //do add a box twice to the hashmap
+  if (b)
+  {
+    if (b->x != pbox->x ||
+        b->y != pbox->y)
+      printf("add to ht FAIL: %d, %d     %d, %d\n", b->x, b->y, pbox->x,pbox->y);
+      printf("reusing: %d, %d    --   %d, %d\n", b->x, b->y, pbox->x,pbox->y);
+    b->state = pbox->state;
+    return b;
+  }
+  g_hash_table_insert(ht,key,pbox);
+  return  pbox;
 }
 
 //retourne la box qui a les coordonnée xy NULL si aucun
 inline struct box * getBoxbyXY(int x, int y, GHashTable *ht){
-  char key[15];
+  char key[16];
   struct box * pbox = NULL;
-  memset(key,0,sizeof(key));
-  snprintf(key,sizeof(key),"%d%d",x,y);
+  memset(key, 0, 16);
+  snprintf(key, 16, "%.4d%.4d", x, y);
   pbox = g_hash_table_lookup(ht, &key);
   if (pbox == NULL)
     return NULL;
 
   if ( (pbox->x != x ) | (pbox->y != y)){
-    DEBUG("ERROR HTAB");
+    printf("ERROR HTAB: %d, %d    --   %d, %d\n", x, y, pbox->x,pbox->y);
+    //DEBUG("ERROR HTAB");
   }
   return pbox;
 
+}
+
+int box_decode_state(char c)
+{
+  switch(c)
+  {
+  case '0':
+    return ROUTE;
+  case '1':
+    return MUR;
+  case '2':
+    return PLAYER;
+  case '3':
+    return EXIT;
+  }
+  return UNKNOWN;
+}
+
+char box_get_state(box *pbox)
+{
+  if (!pbox)
+    return ' ';
+  if (pbox->state & UNKNOWN)
+    return 'U';
+  if (pbox->state & EXIT)
+    return '#';
+  if (pbox->state & VISITED)
+    return '*';
+  if (pbox->state & ROUTE)
+    return '.';
+  if (pbox->state & MUR)
+    return '1';
+  return ' ';
+}
+
+void box_verify(box *pbox, GHashTable *ht)
+{
+  box *test;
+
+  if (!pbox)
+    return;
+  if (pbox->up != getBoxbyXY(pbox->x, pbox->y + 1, ht))
+    printf("fucked up box[UP]: %d, %d\n", pbox->x, pbox->y);
+  if (pbox->down != getBoxbyXY(pbox->x, pbox->y - 1, ht))
+    printf("fucked up box[DO]: %d, %d\n", pbox->x, pbox->y);
+  if (pbox->left != getBoxbyXY(pbox->x - 1, pbox->y, ht))
+    printf("fucked up box[LE]: %d, %d\n", pbox->x, pbox->y);
+  if (pbox->right != getBoxbyXY(pbox->x + 1, pbox->y, ht))
+    printf("fucked up box[RI]: %d, %d\n", pbox->x, pbox->y);
+}
+
+void print_map(GHashTable *ht, box *current)
+{
+  int i = 0;
+  int j = 0;
+
+  printf("Map size: x[%d, %d] y[%d, %d]\n", gminx, gmaxx, gminy, gmaxy);
+  for (i = gminy; i < gmaxy; ++i)
+  {
+    for (j = gminx; j < gmaxx; ++j)
+    {
+      box_verify(getBoxbyXY(j, i, ht), ht);
+      if (current && current->x == j && current->y == i)
+        printf("X");
+      else
+        printf("%c", box_get_state(getBoxbyXY(j, i, ht)));
+    }
+    printf("\n");
+  }
+}
+
+int box_is_unknown(box *pbox)
+{
+  if (!pbox)
+    return 1;
+  if (pbox->state & UNKNOWN)
+    return 1;
+  return 0;
 }
 
 struct box * newbox(char state, int x, int y, GHashTable *ht){
@@ -69,14 +169,24 @@ struct box * newbox(char state, int x, int y, GHashTable *ht){
   nbox->state = state;
   nbox->x     = x;
   nbox->y     = y;
-  addboxtohtab( nbox, ht );
+
+  if (x > gmaxx)
+    gmaxx = x;
+  if (x < gminx)
+    gminx = x;
+  if (y > gmaxy)
+    gmaxy = y;
+  if (y < gminy)
+    gminy = y;
+
+  //printf("newbox[%d, %d]: %d\n", x, y, state);
+  nbox = addboxtohtab( nbox, ht );
   if (nbox != getBoxbyXY(x,y, ht)){
     printf("error htab dans newbox");
     exit(1);
   }
   chainbox( nbox, ht);
-  printbox(nbox);
-
+  //box_print(nbox);
   return nbox;
 }
 
@@ -107,45 +217,112 @@ void chainbox(struct box * pbox, GHashTable *ht){
   }
   //  printbox(pbox);
 }
-void printbox(struct box * pbox){
+void box_print(box *pbox){
   char buff[15];
+
   memset(buff,0, sizeof(buff));
   if (pbox == NULL){
     DEBUG("ERREUR : la case courante est NULL");
     return;
   }
-  givestatebox(pbox, buff);
-  printf("la case est : %s \n\r", buff);
-  givestatebox(pbox->left, buff);
-  printf("left : %s \n\r",  buff);
-  givestatebox(pbox->right, buff);
-  printf("right : %s\n\r", buff);
-  givestatebox(pbox->up, buff);
-  printf("up : %s\n\r", buff);
-  givestatebox(pbox->down, buff);
-  printf("down : %s\n\r", buff);
-  printf("coordonnees : { %d | %d } \n\r",pbox->x, pbox->y);
+  printf("Box[%d, %d] : %s (Up:%s, Down:%s, Left: %s, Right:%s)\n", pbox->x, pbox->y,
+         givestatebox(pbox       , buff),
+         givestatebox(pbox->up   , buff),
+         givestatebox(pbox->down , buff),
+         givestatebox(pbox->left , buff),
+         givestatebox(pbox->right, buff));
 }
 
-void givestatebox(struct box * pbox, char* rep){
-    if (  pbox == NULL   ){
-      strcpy(rep, "NULL\0");
-      return;
-    }
-  if ( pbox->state & UNKNOWN){
-    strcpy(rep, "UNKNOWN\0");
-    return;
-  }
-  if ( pbox->state & EXIT ){
-    strcpy(rep, "EXIT\0");
-    return;
-  }
-  if ( pbox->state & ROUTE ){
-    strcpy(rep, "ROUTE\0");
-  return;
-  }
+char *givestatebox(struct box * pbox, char* rep){
+  int i = 0;
 
-  strcpy(rep, "MUR\0");
-
+  if (pbox == NULL){
+    strcpy(rep, "NULL");
+    return rep;
+  }
+  if (pbox->state & UNKNOWN)
+    rep[i++] = 'U';
+  if (pbox->state & EXIT)
+    rep[i++] = 'E';
+  if (pbox->state & ROUTE)
+    rep[i++] = 'R';
+  if (pbox->state & VISITED)
+    rep[i++] = 'V';
+  if (pbox->state & MUR)
+    rep[i++] = 'M';
+  rep[i] = 0;
+  return rep;
 }
 
+int box_is_wall(box *pbox)
+{
+  if (pbox->state & MUR)
+    return 1;
+  return 0;
+}
+
+int box_is_visited(box *pbox)
+{
+  if (pbox->state & VISITED)
+    return 1;
+  return 0;
+}
+
+//return true is this is an unexplorated case
+int box_is_interesting(box *pbox)
+{
+  if (box_is_wall(pbox))
+    return 0;
+  if (box_is_visited(pbox))
+    return 0;
+  return 1;
+}
+
+
+int box_is_exit(box *pbox)
+{
+  if (pbox->state & EXIT)
+    return 1;
+  return 0;
+}
+
+// return the number of road starting from this box
+int box_count_interesting_road(box *pbox)
+{
+  int ret = 0;
+  ret += box_is_interesting(pbox->left);
+  ret += box_is_interesting(pbox->right);
+  ret += box_is_interesting(pbox->up);
+  ret += box_is_interesting(pbox->down);
+  return ret;
+}
+
+void box_mark_visited(box *pbox)
+{
+  pbox->state |= VISITED;
+}
+
+/* try to find exit first
+ * if no exit found, try to found a box not explorated yet
+ */
+box *box_get_interesting_neighboor(box *pbox)
+{
+  if (box_is_exit(pbox->left))
+    return pbox->left;
+  if (box_is_exit(pbox->right))
+    return pbox->right;
+  if (box_is_exit(pbox->up))
+    return pbox->up;
+  if (box_is_exit(pbox->down))
+    return pbox->down;
+
+  if (box_is_interesting(pbox->left))
+    return pbox->left;
+  if (box_is_interesting(pbox->right))
+    return pbox->right;
+  if (box_is_interesting(pbox->up))
+    return pbox->up;
+  if (box_is_interesting(pbox->down))
+    return pbox->down;
+  return 0;
+}

@@ -26,14 +26,13 @@
 
 #ifndef   	LIBBOX_H_
 # define   	LIBBOX_H_
-#define MUR      0x01
-#define PELLE    0x02
-#define MINE     0x04
-#define COLLET   0x08
-#define PLAYER   0x10
-#define EXIT     0x20
-#define UNKNOWN  0x40
-#define ROUTE    0x80
+
+#define MUR      0x001
+#define VISITED  0x002
+#define PLAYER   0x010
+#define EXIT     0x020
+#define UNKNOWN  0x040
+#define ROUTE    0x080
 
 #define UP       1
 #define DOWN     2
@@ -51,16 +50,32 @@ typedef struct box
   int x;
   int y;
 
-}box;
+} box;
 
+void print_map(GHashTable *ht, box *current);
 
 struct box * newbox(char, int , int , GHashTable *);
 void printbox(struct box *);
-void givestatebox(struct box *, char* );
+char * givestatebox(struct box *, char* );
 
-inline void addboxtohtab(struct box *, GHashTable *);
+inline  box *addboxtohtab(struct box *, GHashTable *);
 inline struct box * getBoxbyXY(int, int, GHashTable *);
 void chainbox(struct box *, GHashTable *);
 void DEBUG(char *);
+
+
+int box_decode_state(char c);
+
+int box_is_unknown(box *pbox);
+int box_is_wall(box *pbox);
+int box_is_visited(box *pbox);
+int box_is_interesting(box *pbox);
+int box_is_exit(box *pbox);
+int box_count_interesting_road(box *pbox);
+void box_mark_visited(box *pbox);
+box *box_get_interesting_neighboor(box *pbox);
+void box_print(box *box);
+
+
 
 #endif 	    /* !LIBBOX_H_ */
