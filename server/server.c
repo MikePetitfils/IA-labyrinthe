@@ -164,6 +164,9 @@ int main(int argc, char **argv)
                 memset(direction,0,120);
                 memcpy(direction,buffer+5,120);
 
+                print_map(&current_map);
+                printf("move[%d, %d] : %d\n", current_player->x, current_player->y, map[current_map.width *current_player->y + current_player->x]);
+
                 /* move the player */
                 if(move_player(current_player,direction,1) > 0){
                   send_message_to_player(current_player,"OK\n");
@@ -172,8 +175,7 @@ int main(int argc, char **argv)
                 }
 
                 /* we move on the exit, the current user win*/
-                if((1 << map[current_map.width *current_player->y + current_player->x]) &
-                   (BoxStatusExit) ){
+                if(map[current_map.width *current_player->y + current_player->x] == EXIT){
 
                   send_message_to_player(current_player,"You win\n");
                   send_message_to_IHM(ihm,"End of game\n");
@@ -668,7 +670,7 @@ void send_around_to_player(Player *aPlayer){
 // renvoi vrai si le joueur s'est déplacé. faux sinon.
 // j'ai fais exprès de séparer la sortie de map à le fait qu'il y ait un mur ou un joueur
 // même si le resultat est le même
-int move_player(Player *aPlayer, char *direction,int nb){
+int move_player(Player *aPlayer, char *direction, int nb){
 
   int success = -1;
   int new_x = 0, new_y = 0;
@@ -731,7 +733,10 @@ int move_player(Player *aPlayer, char *direction,int nb){
     aPlayer->x = new_x;
     aPlayer->y = new_y;
 
-    currentMap[current_map.width*aPlayer->y + aPlayer->x] = PLAYER;
+    if (currentMap[current_map.width*aPlayer->y + aPlayer->x] == EXIT)
+      printf("do not move: this is exits (dont erase with player)\n");
+    else
+      currentMap[current_map.width*aPlayer->y + aPlayer->x] = PLAYER;
 
 
     /* envoi du resultat à l'ihm */
@@ -1056,7 +1061,9 @@ void load_map(Info_map *infoMap){
   /* initialize random seed: */
   srand(time(NULL));
 
-  infoMap->id = (rand() % 3) + 1;
+  infoMap->id = (rand() % 4) + 1;
+  //todo
+  //infoMap->id = 4;
 
   switch(infoMap->id){
 
@@ -1074,6 +1081,11 @@ void load_map(Info_map *infoMap){
     infoMap->map = (int **)map3;
     infoMap->width = 32;
     infoMap->height = 32;
+    break;
+  case 4 :
+    infoMap->map = (int **)map4;
+    infoMap->width = 5;
+    infoMap->height = 5;
     break;
   default:
     infoMap->map = (int **)map;
@@ -1110,9 +1122,23 @@ void load_map(Info_map *infoMap){
 
 }
 
+void print_map(Info_map *map)
+{
+  int i, j;
+  if (!map)
+    return;
+  printf("print map %d, %d\n", map->height, map->width);
+  for(i=0; i<map->height;i++){
+    for(j=0; j<map->width;j++){
+      printf("%d", map->map[map->width * i + j]);
+    }
+    printf("\n");
+  }
+}
+
 void place_exits(Info_map *currentMap){
 
-
+  //return;
   int i;
   int random_x, random_y;
 
@@ -1140,6 +1166,7 @@ void place_exits(Info_map *currentMap){
       random_y = rand()% currentMap->height;
     }
 
+    printf("exit is: %d, %d\n", random_x, random_y);
     map[currentMap->width*random_y + random_x] = EXIT;
 
   }
@@ -1227,10 +1254,7 @@ void place_objects(Object **objects, int num_object, Info_map *currentMap){
     objects[i]->y = random_y;
 
     map[currentMap->width*random_y+random_x] = OBJECT;
-
   }
-
-
 }
 
 
