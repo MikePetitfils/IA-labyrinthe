@@ -17,258 +17,21 @@
 #include <glib/gtypes.h>
 #include <glib/ghash.h>
 #include "libbox.h"
-
-#define BUFFSIZE 255
-
+#include "main.h"
+struct box *currentbox;
+struct box *curseurbox;
 GHashTable *ht;
+#define BUFFSIZE 255
+char buffer[BUFFSIZE];
+void Die(char *mess) { perror(mess); exit(1); }
 
-void Die(char *mess)
-{
-  perror(mess);
-  exit(1);
-}
-
-
-box *explore(box *pbox);
-
-
-/*
- * set the buffer to be sent to the server according to the move computed by explore
- */
-void avancer(box *prev, box *next, char *buffersend){
-  printf("moving to box[%d, %d]\n", next->x, next->y);
-  box_print(next);
-  if (prev->up == next)
-    strcpy(buffersend, "MOVE North");
-  else if (prev->down == next)
-    strcpy(buffersend,"MOVE South");
-  else if (prev->right == next)
-    strcpy(buffersend,"MOVE East");
-  else if (prev->left == next)
-    strcpy(buffersend,"MOVE West");
-  else
-  {
-    print_map(ht, next);
-    printf("FAIL MON POTE\n");
-    //exit(1);
-  }
-}
-
-int startswith(const char *buffer, const char *start)
-{
-  int len = strlen(start);
-  int i;
-
-  for (i = 0; i < len; ++i)
-    if (buffer[i] != start[i])
-      return 0;
-  return 1;
-}
-
-/*
- * on n'a pas encore le protocole alors je simule la premiere lettre du msg
- *v pour voir a pour
- */
-box *WhatweGonnaDo(box *currentbox, const char *bufferrecv, char *buffersend){
-  box         *prev;
-
-  buffersend[0] = 0;
-
-  if (startswith(bufferrecv, "North"))
-  {
-    if (box_is_unknown(currentbox->up))
-      currentbox->up = newbox(box_decode_state(bufferrecv[6]),currentbox->x, currentbox->y + 1, ht);
-    if (box_is_unknown(currentbox->up->up))
-      currentbox->up->up = newbox(box_decode_state(bufferrecv[8]),currentbox->x, currentbox->y + 2, ht);
-  }
-
-  else if (startswith(bufferrecv, "South"))
-  {
-    if (box_is_unknown(currentbox->down))
-      currentbox->down = newbox(box_decode_state(bufferrecv[6]),currentbox->x, currentbox->y - 1, ht);
-    if (box_is_unknown(currentbox->down->down))
-      currentbox->down->down = newbox(box_decode_state(bufferrecv[8]),currentbox->x, currentbox->y - 2, ht);
-  }
-
-  else if (startswith(bufferrecv, "West"))
-  {
-    if (box_is_unknown(currentbox->left))
-      currentbox->left = newbox(box_decode_state(bufferrecv[5]),currentbox->x - 1, currentbox->y, ht);
-    if (box_is_unknown(currentbox->left->left))
-      currentbox->left->left = newbox(box_decode_state(bufferrecv[7]),currentbox->x - 2, currentbox->y, ht);
-  }
-
-  else if (startswith(bufferrecv, "East"))
-  {
-    if (box_is_unknown(currentbox->right))
-      currentbox->right = newbox(box_decode_state(bufferrecv[5]),currentbox->x + 1, currentbox->y, ht);
-    if (box_is_unknown(currentbox->right->right))
-      currentbox->right->right = newbox(box_decode_state(bufferrecv[7]),currentbox->x + 2, currentbox->y, ht);
-  }
-  else if (startswith(bufferrecv, "FAILED"))
-  {
-    print_map(ht, currentbox);
-    printf("Fail sucker... invalid move\n");
-    exit(1);
-  }
-  //TODO: ack => the first time the server doest not send Play but Timeout (we start after each empty line as a hack)
-  //if (startswith(bufferrecv, "Play") || bufferrecv[0] == 0)
-  else if (bufferrecv[0] == 0)
-  {
-
-    //TODO : what we do whith this fucking buffer!
-    prev = currentbox;
-    currentbox = explore(currentbox);
-    avancer(prev, currentbox, buffersend);
-  }
-  else
-  {
-    printf("Command : %s\n", bufferrecv);
-  }
-  return currentbox;
-}
-
-
-
-/**
- * - store a list of each cross
- * - find the next case not visited
- *
- */
-
-static box *gcross[256] = { 0, };
-static int  gcurrent    = 0;
-
-//store the road we take
-//used to rollback to the previous point (all box between the endpoint and the rollback point will be overriden)
-static box *gposlog[50000] = { 0, };
-static box *grewinddest = 0;
-static int  gposcurrent = 0;
-
-
-void rb_store(box *current)
-{
-  gposlog[gposcurrent++] = current;
-}
-
-box *rb_rewind()
-{
-  box *next;
-
-  //not rewinding
-  if (!grewinddest)
-    return 0;
-  if (gposcurrent == 0)
-    return 0;
-
-  next = gposlog[--gposcurrent];
-
-  //rewind finish, stop rewinding
-  if (next == grewinddest)
-  {
-    grewinddest = 0;
-    //remove the cross from the list of cross, will be readded latter if it's still interesting
-    gcurrent--;
-  }
-  return next;
-}
-
-void rb_setup_rewind(box *dest)
-{
-  grewinddest = dest;
-}
-
-/*
- *
- */
-box *explore(box *pbox) {
-  int  c    = box_count_interesting_road(pbox);
-  box *next = 0;
-
-
-  box_print(pbox);
-
-  //mark current box as visited
-  box_mark_visited(pbox);
-
-  next = rb_rewind();
-  if (next)
-    return next;
-
-  //store the current box (should be after rewind), we dont want to store your move when rewinding
-  rb_store(pbox);
-
-  if (box_is_exit(pbox))
-  {
-    printf("\n");
-    printf("################################################################\n");
-    printf("BIM je mange ta maman et je saute en case terminale. Kamoulox\n");
-    printf("################################################################\n");
-    //TODO: faire le deplacement de la fin
-    exit(0);
-  }
-
-  //more than one read => store the crossing for later
-  if (c > 1) {
-    gcross[gcurrent++] = pbox;
-  }
-
-  next = box_get_interesting_neighboor(pbox);
-  //we are in a "cul de sac" (with french accent)
-  //rollback to the previous cross
-  if (!next)
-  {
-    if (gcurrent < 1)
-    {
-      printf("fail 1\n");
-      exit(1);
-    }
-    printf("rewinding:\n");
-    rb_setup_rewind(gcross[gcurrent - 1]);
-    //cancel the current move
-    rb_rewind();
-    return rb_rewind();
-  }
-  return next;
-}
-
-/* fgets for socket */
-int sgets(char *buffer, int max, int fd)
-{
-  int  i = 0;
-  int bytes = 0;
-  char *p = buffer;
-
-  while (i < max)
-  {
-    bytes = recv(fd, p, 1, 0);
-    if (bytes < 1)
-    {
-      printf("Receive returned: %d\n", bytes);
-      Die("Failed to receive bytes from server AHHH");
-    }
-    ++i;
-    if (*p == '\n')
-      break;
-    p++;
-  }
-
-  //on est jamais trop sure
-  *p = 0;
-  buffer[max] = 0;
-  return i;
-}
 
 int main(int argc, char *argv[]) {
-  int    sock;
+  int sock;
   struct sockaddr_in echoserver;
-  char   bufferrecv[256];
-  char   buffersend[256];
-  box   *currentbox;
-  box   *prevbox;
+  ht = g_hash_table_new(g_str_hash, g_str_equal);
 
-  ht     = g_hash_table_new(g_str_hash, g_str_equal);
-  currentbox    = newbox(ROUTE, 0, 0, ht);
+  currentbox    = newbox(ROUTE, 0,0,ht);
   if (argc != 4) {
     fprintf(stderr, "USAGE: %s <server_ip> <port> <pseudo>\n", argv[0]);
     exit(1);
@@ -284,31 +47,239 @@ int main(int argc, char *argv[]) {
   echoserver.sin_addr.s_addr = inet_addr(argv[1]);  /* IP address */
   echoserver.sin_port = htons(atoi(argv[2]));       /* server port */
   /* Establish connection */
-  if (connect(sock, (struct sockaddr *) &echoserver, sizeof(echoserver)) < 0)
+  if (connect(sock,
+              (struct sockaddr *) &echoserver,
+              sizeof(echoserver)) < 0) {
     Die("Failed to connect with server");
-
-  send(sock, argv[3], strlen(argv[3]), 0);
-  if (!sgets(bufferrecv, 255, sock))
-    Die("Failed to receive bytes from server");
-  if (!sgets(bufferrecv, 255, sock))
-    Die("Failed to receive bytes from server");
-
+  }
+  send(sock,argv[3], strlen(argv[3]),0);
   //while true listen at the socket
   while (1){
-    if (!sgets(bufferrecv, 255, sock))
-      Die("Failed to receive bytes from server bim");
-    //we ever know!
-    bufferrecv[255] = 0;
-    prevbox = currentbox;
-    currentbox = WhatweGonnaDo(currentbox, bufferrecv, buffersend);
-    if (buffersend[0])
-    {
-      printf("Sending: %s\n", buffersend);
-      send(sock, buffersend, strlen(buffersend), 0);
-      //easyier debug
-      print_map(ht, prevbox);
-      //sleep(1);
+
+    int bytes = 0;
+    if ((bytes = recv(sock, buffer, BUFFSIZE-1, 0)) < 1) {
+      Die("Failed to receive bytes from server");
     }
+
+    buffer[bytes] = '\0';        /* Assure null terminated string */
+
+    //printf("what we gonna do : \n\r %c", buffer[0]);
+    WhatweGonnaDo();
+    //avancer(currentbox);
+
+    send(sock,buffer,strlen(buffer),0);
 
   }
 }
+/*
+ * on n'a pas encore le protocole alors je simule la premiere lettre du msg
+ *v pour voir a pour
+ */
+void WhatweGonnaDo(){
+  unsigned int i, j,k;
+  char response[9];
+  fprintf(stdout, buffer);
+  // si c'est une réponse a voir
+  if (buffer[0] == 'P'){
+    //eat until "Timeout:"
+    for ( i = 0; buffer[i] != ':'; i++);
+      //if( i == strlen(buffer) )
+      //break;
+      // }
+
+    i++;
+    /* printf("buffer ----------------------------- \n\r"); */
+    /* for ( k = i; k < strlen(buffer);k++) */
+    /*   printf("%c", buffer[k]); */
+    /* printf("buffer ----------------------------- \n\r"); */
+    //eat until North:
+    for ( j = 0; j < 8 ; j++ ){
+      for ( ; buffer[i] != ':'; i++){
+        if( i == strlen(buffer) )
+          break;
+        else if (buffer[i] == ',')
+          break;
+      }
+      /* printf("buffer ----------------------------- \n\r"); */
+      /* for ( k = i; k < strlen(buffer);k++) */
+      /*   printf("%c", buffer[k]); */
+      /* printf("j : %d \n\r", j); */
+      /* printf("buffer ----------------------------- \n\r"); */
+      i++;
+
+      switch(buffer[i]){
+      case '-':
+        response[j] = UNKNOWN;
+        printf("response[%d] = UNKNOWN; \n\r",j);
+        break;
+      case'0':
+        response[j] = ROUTE;
+        printf("response[%d] = ROUTE; \n\r",j);
+        break;
+      case'1':
+        response[j] = MUR;
+        printf("response[%d] = MUR; \n\r",j);
+        break;
+      case'2':
+        response[j] = PLAYER;
+        printf("response[%d] = PLAYER; \n\r",j);
+        break;
+      case '3':
+        response[j] = EXIT;
+        printf("response[%d] = EXIT; \n\r",j);
+        break;
+      default:
+        DEBUG("erreur de parsage");
+        exit(1);
+      }
+
+    }
+
+    response[j]='\0';
+    nouvelle_cases(&currentbox, response);
+  }
+
+
+  //TODO : what we do whith this fucking buffer!
+  memset(buffer,0,BUFFSIZE);
+  avancer(&currentbox);
+}
+
+
+/*si on nous donne un resultat on rajoute les nouvelles cases dans l'arbre
+ *en gros sur reponse de la commande voir
+ *on manipule l'objet courent je prend des pointeurs de pointeurs pour
+ *faire disparaitre au fur et a mesure la putain de variable globale avec
+ *l'arbre
+*/
+
+void nouvelle_cases(struct box ** pbox, char * buff){
+  int nbr_mur = 0;
+
+  if ((*pbox)->up == NULL )
+    (*pbox)->up=newbox(buff[0],(*pbox)->x, (*pbox)->y + 1, ht);
+  if ((*pbox)->up->up == NULL )
+    (*pbox)->up->up=newbox(buff[1],(*pbox)->x, (*pbox)->y + 2, ht);
+
+  if ((*pbox)->down == NULL )
+    (*pbox)->down=newbox(buff[2],(*pbox)->x, (*pbox)->y - 1, ht);
+  if ((*pbox)->down->down == NULL )
+    (*pbox)->down->down=newbox(buff[3],(*pbox)->x, (*pbox)->y - 2, ht);
+
+  if ((*pbox)->left == NULL )
+    (*pbox)->left=newbox(buff[4],(*pbox)->x - 1, (*pbox)->y, ht);
+  if ((*pbox)->left->left == NULL )
+    (*pbox)->left->left=newbox(buff[5],(*pbox)->x - 2, (*pbox)->y, ht);
+
+  if ((*pbox)->right == NULL )
+    (*pbox)->right=newbox(buff[6],(*pbox)->x + 1, (*pbox)->y, ht);
+  if ((*pbox)->right->right == NULL )
+    (*pbox)->right->right = newbox(buff[7],(*pbox)->x + 2, (*pbox)->y, ht);
+
+}
+/*
+ * Sur demande change la current box
+ *
+ */
+void update_current(struct box ** pbox){
+  switch ( buffer[1] ) {
+  case 'u':
+    (*pbox) = (*pbox)->up;
+    break;
+  case 'd':
+    (*pbox) = (*pbox)->down;
+    break;
+  case 'l':
+    (*pbox) = (*pbox)->left;
+    break;
+  case 'r':
+    (*pbox) = (*pbox)->right;
+    break;
+  default:
+    break;
+
+  }
+}
+/*
+ * Cette fonction sert à laisser le choix à l'IA pour avancer
+ * prend la première issue qui n'est pas un mur
+ */
+void avancer(struct box ** pbox){
+  DEBUG("avancer dedans");
+  if ( (*pbox)->up != NULL ){
+    DEBUG("up not null");
+    if ( !((*pbox)->up->state & MUR) ){
+      strcpy(buffer, "MOVE North\0");
+      (*pbox)=(*pbox)->up;
+      DEBUG ("avancer :up ");
+      return;
+    }
+  }
+  else
+    DEBUG("up null ");
+  if ( (*pbox)->down != NULL ){
+    if ( !((*pbox)->down->state & MUR) ){
+      strcpy(buffer,"MOVE South\0");
+      (*pbox)=(*pbox)->down;
+      DEBUG ("avancer :down ");
+      return;
+    }
+  }
+  else
+    DEBUG("down null ");
+
+  if ( (*pbox)->right != NULL ){
+    if ( !((*pbox)->right->state & MUR) ){
+      strcpy(buffer,"MOVE East\0");
+      (*pbox)=(*pbox)->right;
+      DEBUG ("avancer : right\n\r");
+      return;
+    }
+  }
+  else
+    DEBUG("right  null ");
+
+  if ( (*pbox)->left != NULL ){
+    if ( !((*pbox)->left->state & MUR) ){
+      DEBUG ("avancer left");
+      (*pbox)=(*pbox)->left;
+      strcpy(buffer,"MOVE West\0");
+      return;
+    }
+  }
+  else
+    DEBUG("left null ");
+
+
+}
+
+
+/*
+ * verifie si la case est un cul de sac si c'est un cul de sac la case est definit comme un mur et
+ * se rappel recursivement sur la case de la seul issue
+ * ne marque pas en mur la case si le joueur est dessus
+*/
+void culdesacbuster(struct box * pbox){
+  int issue;
+  issue = 0;
+  DEBUG("cul de sac buster");
+  if ( pbox == NULL ){
+    printf("la case est NULL");
+    return;
+  }
+
+  if ( pbox != currentbox){
+    pbox->state |= MUR;
+    DEBUG("cul de sac detect");
+    if ( pbox->left != NULL && !( pbox->left->state & MUR ) )
+      culdesacbuster(pbox->left);
+    else if ( pbox->right != NULL && !( pbox->right->state & MUR ) )
+      culdesacbuster(pbox->right);
+    else if ( pbox->down != NULL && ! ( pbox->down->state & MUR ) )
+      culdesacbuster(pbox->down);
+    else if ( pbox->up != NULL && !( pbox->up->state & MUR ) )
+      culdesacbuster(pbox->up);
+  }
+}
+
+
